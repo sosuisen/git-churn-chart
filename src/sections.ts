@@ -3,9 +3,11 @@ import { CODE_EXTENSIONS } from './code.ts';
 import { buildDailyStats } from './daily-stats.ts';
 import type { ChartSection } from './page.ts';
 import type { FileChange } from './patch-log.ts';
+import { countTests } from './test-count.ts';
 
 /**
- * Builds the charts of the page: code without tests, tests, and all files.
+ * Builds the charts of the page: code without tests, tests, number of tests, and all files.
+ * The first, second, and fourth charts count lines. The third chart counts tests.
  *
  * @param endDate Last day of the period in `YYYY-MM-DD`.
  * @param days Length of the period. It must be a positive integer.
@@ -27,6 +29,10 @@ export function buildSections(
   }));
   const code = counted.map(({ date, code }) => ({ date, ...code }));
   const test = counted.map(({ date, test }) => ({ date, ...test }));
+  const testCount = changes.map(change => ({
+    date: change.date,
+    ...countTests(change),
+  }));
   return [
     {
       heading: `コード本体（${extensions}。テストを除く）`,
@@ -35,6 +41,10 @@ export function buildSections(
     {
       heading: `テストコード（${extensions}）`,
       stats: buildDailyStats(test, endDate, days),
+    },
+    {
+      heading: 'テストの数（テストの宣言を数えた推定）',
+      stats: buildDailyStats(testCount, endDate, days),
     },
     {
       heading: 'すべてのファイル',

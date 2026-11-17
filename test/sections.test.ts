@@ -15,7 +15,7 @@ const change = (
 
 /** Added and deleted lines of each chart as `[added, deleted]`. */
 const totals = (changes: FileChange[]) => {
-  const [code, tests, all] = buildSections(changes, '2026-11-18', 1).map(
+  const [code, tests, , all] = buildSections(changes, '2026-11-18', 1).map(
     section => [section.stats[0]?.added, section.stats[0]?.deleted],
   );
   return { code, tests, all };
@@ -23,14 +23,15 @@ const totals = (changes: FileChange[]) => {
 
 // ページに並べるグラフ
 describe('buildSections', () => {
-  // グラフは、コード本体・テストコード・すべてのファイルの順に並ぶ
-  test('lists the charts in the order of code, tests, and all files', () => {
+  // グラフは、コード本体・テストコード・テストの数・すべてのファイルの順に並ぶ
+  test('lists the charts in the order of code, tests, number of tests, and all files', () => {
     const headings = buildSections([], '2026-11-18', 1).map(s => s.heading);
 
-    expect(headings).toHaveLength(3);
+    expect(headings).toHaveLength(4);
     expect(headings[0]).toMatch(/^コード本体/);
     expect(headings[1]).toMatch(/^テストコード/);
-    expect(headings[2]).toBe('すべてのファイル');
+    expect(headings[2]).toMatch(/^テストの数/);
+    expect(headings[3]).toBe('すべてのファイル');
   });
 
   // コード本体とテストコードの見出しに、対象の拡張子を表示する
@@ -39,6 +40,19 @@ describe('buildSections', () => {
 
     expect(code?.heading).toContain('.rs .swift .kt .cs');
     expect(tests?.heading).toContain('.rs .swift .kt .cs');
+  });
+
+  // テストの数のグラフは、行ではなく、増えたテストと減ったテストを数える
+  test('counts added and deleted tests, not lines, in the chart of the number of tests', () => {
+    const file = change(
+      'tests/app.rs',
+      ['#[test]', 'fn adds() {}', '#[test]', 'fn reads() {}'],
+      ['#[test]', 'fn old() {}'],
+    );
+
+    const stat = buildSections([file], '2026-11-18', 1)[2]?.stats[0];
+
+    expect([stat?.added, stat?.deleted]).toEqual([2, 1]);
   });
 
   // コードでないファイルは、すべてのファイルにだけ入る
