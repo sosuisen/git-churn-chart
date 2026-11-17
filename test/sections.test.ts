@@ -23,14 +23,15 @@ const totals = (changes: FileChange[]) => {
 
 // ページに並べるグラフ
 describe('buildSections', () => {
-  // グラフは、コード本体・テストコード・すべてのファイルの順に並ぶ
-  test('lists the charts in the order of code, tests, and all files', () => {
+  // グラフは、コード本体・テストコード・テストの数・すべてのファイルの順に並ぶ
+  test('lists the charts in the order of code, tests, number of tests, and all files', () => {
     const headings = buildSections([], '2026-11-18', 1).map(s => s.heading);
 
-    expect(headings).toHaveLength(3);
+    expect(headings).toHaveLength(4);
     expect(headings[0]).toMatch(/^コード本体/);
     expect(headings[1]).toMatch(/^テストコード/);
-    expect(headings[2]).toBe('すべてのファイル');
+    expect(headings[2]).toMatch(/^テストの数/);
+    expect(headings[3]).toBe('すべてのファイル');
   });
 
   // コード本体とテストコードの見出しに、対象の拡張子を表示する
