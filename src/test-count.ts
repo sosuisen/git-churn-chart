@@ -7,6 +7,9 @@ const JS_TEST = /^(?:test|it)(?:\.\w+)*\(/;
 /** `@Test` and `@ParameterizedTest` of JUnit. */
 const JUNIT_TEST = /^@(?:Test|ParameterizedTest)\b/;
 
+/** `TEST(`, `TEST_F(`, `TEST_P(` of GoogleTest, and `TEST_CASE(` of Catch2 and doctest. */
+const CPP_TEST = /^(?:TEST|TEST_F|TEST_P|TEST_CASE)\(/;
+
 /** Pattern of a line that declares one test, by the extension of the file. */
 const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
   // `#[test]`, `#[tokio::test]`, `#[tokio::test(...)]`. Not `#[cfg(test)]`.
@@ -24,6 +27,9 @@ const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
   jsx: JS_TEST,
   mjs: JS_TEST,
   cjs: JS_TEST,
+  cpp: CPP_TEST,
+  cc: CPP_TEST,
+  cxx: CPP_TEST,
 };
 
 /**
