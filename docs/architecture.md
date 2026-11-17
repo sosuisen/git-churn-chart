@@ -1,0 +1,77 @@
+# architecture
+
+## 全体像
+
+ローカルのGitリポジトリを読み、日ごとの追加行数・削除行数・純増の累計を、1枚のHTMLファイルに出力するコマンドである。画面はない。出力したHTMLをブラウザで開いて見る。
+
+グラフは3つある。上から、コード本体、テストコード、すべてのファイルである。
+
+## モジュール
+
+すべて`src/`にある。クラスは使わず、関数だけで作る。
+
+| ファイル              | 役割                                                        | 主な関数                                   |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------ |
+| `main.ts`             | エントリーポイント。引数を読み、下の関数を順に呼ぶ          | `main`                                     |
+| `git.ts`              | `git log`を実行する                                         | `readPatchLog`                             |
+| `patch-log.ts`        | `git log -p`の出力を、ファイルごとの変更行にする            | `parsePatchLog`                            |
+| `code.ts`             | 拡張子で、コードかどうかを判定する                          | `isCode`、`CODE_EXTENSIONS`                |
+| `test-path.ts`        | パスで、テストかどうかを判定する                            | `isTestPath`                               |
+| `rust-test-module.ts` | Rustの1つの変更箇所を、本体の行とテストの行に分ける         | `splitRustHunk`                            |
+| `category.ts`         | 1つのファイルの変更行を、コード本体・テスト・その他に分ける | `countByCategory`                          |
+| `daily-stats.ts`      | 行数を、日ごとに集計する                                    | `buildDailyStats`、`addDays`               |
+| `sections.ts`         | 3つのグラフのデータと見出しを作る                           | `buildSections`                            |
+| `scale.ts`            | 軸の目盛りを決める                                          | `niceTicks`                                |
+| `format.ts`           | 数と日付を文字列にする。HTMLをエスケープする                | `formatSigned`、`formatTick`、`escapeHtml` |
+| `chart-svg.ts`        | グラフをSVGで描く                                           | `renderChartSvg`                           |
+| `page.ts`             | SVG・凡例・表・ツールチップをまとめて、HTMLにする           | `renderPage`                               |
+
+依存の向きは、次のとおりである。
+
+```
+main → git → patch-log
+main → patch-log
+main → sections → category → code, test-path, rust-test-module
+       sections → daily-stats
+       sections → code, page（型だけ）
+main → page → chart-svg → scale, format
+              page → format
+```
+
+- 外部に触るのは、`git.ts`と`main.ts`だけである。ほかは、ファイルもGitも触らない計算である。
+
+## コード本体とテストの分け方
+
+`countByCategory`が、次の順で決める。
+
+1. 拡張子が`CODE_EXTENSIONS`にないファイルは、「その他」である。
+2. パスがテストを表すファイルは、全体が「テスト」である。テスト用のディレクトリの中にあるか、ファイル名がテストを表す語で始まるか終わる。
+3. Rustのファイルは、変更箇所ごとに行単位で分ける。`#[cfg(test)]`の付いた定義（ふつうは`mod tests { ... }`）の中の行が「テスト」である。
+4. 残りは「コード本体」である。
+
+Rustの行単位の切り分けは、ファイル全体を読まない。変更した行と、変更箇所の見出しだけを使う。
+
+- 見出しは、Gitが`@@ ... @@`の後ろに出す文字列である。変更箇所より上で、行頭が英字で始まる最も近い行が入る。
+- テストモジュールの中の行は字下げされている。だから、テストモジュールの中の変更箇所は、見出しが`mod tests {`になる。
+- この方法は、rustfmtの整形を前提にする。テストモジュールの中に、行頭から始まる行（複数行の文字列の中身など）があると、そこから後ろを本体と数えることがある。
+
+## 外部とのやり取り
+
+- Git: `git -C <repo> log --since=<開始日> --patch --unified=0 --date=format-local:%Y-%m-%d --pretty=format:@@@commit %cd`を実行し、標準出力を読む。
+  - `core.quotePath=false`を付ける。日本語などのパスを、そのまま受け取るためである。
+  - `diff.rust.xfuncname`を上書きする。リポジトリがRust用の見出しを有効にしていても、行頭から始まる行を見出しにするためである。
+- ファイル: HTMLを1つ書き出す。場所は`--out`で決まる。
+- 出力するHTMLは、外部のファイルを読み込まない。CSS・SVG・スクリプトをすべて中に持つ。
+
+## 主な処理の流れ
+
+1. `main`が引数を読み、今日の日付と開始日を決める。
+2. `readPatchLog`が、開始日以降のログを、差分つきで読む。
+3. `parsePatchLog`が、ログをファイルごとの変更行にする。
+4. `buildSections`が、ファイルごとに`countByCategory`で行を分け、3つのグラフのデータを作る。その中で`buildDailyStats`が、日ごとに合計し、変更のない日を0で埋め、累計を計算する。
+5. `renderPage`が、3つのセクションを上下に並べたHTMLを作る。セクションごとに`renderChartSvg`がグラフを描く。
+6. `main`がHTMLを書き出し、そのパスを表示する。
+
+## 関連する文書
+
+- [features.md](features.md): 機能の一覧
