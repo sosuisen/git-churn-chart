@@ -17,6 +17,8 @@ const codeStats = buildDailyStats(
 );
 const all = { heading: 'すべてのファイル', stats };
 const code = { heading: 'コードのみ', stats: codeStats };
+const week = { label: '1週間', sections: [all] };
+const month = { label: '1か月', sections: [code] };
 
 const count = (text: string, pattern: RegExp) =>
   [...text.matchAll(pattern)].length;
@@ -76,6 +78,16 @@ describe('renderPage', () => {
   test('shows the first day and the last day of the period', () => {
     expect(renderPage('my-repo', [all])).toContain(
       '2026-11-16 〜 2026-11-18（3日間）',
+    );
+  });
+
+  // 期間ごとのボタンを、渡した順に並べる
+  test('places a button for each period in the given order', () => {
+    const page = renderPage('my-repo', [week, month], 0);
+
+    expect(page.indexOf('>1週間</button>')).toBeGreaterThan(-1);
+    expect(page.indexOf('>1か月</button>')).toBeGreaterThan(
+      page.indexOf('>1週間</button>'),
     );
   });
 
