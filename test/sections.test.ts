@@ -15,7 +15,7 @@ const change = (
 
 /** Added and deleted lines of each chart as `[added, deleted]`. */
 const totals = (changes: FileChange[]) => {
-  const [code, tests, all] = buildSections(changes, '2026-11-18', 1).map(
+  const [code, tests, , all] = buildSections(changes, '2026-11-18', 1).map(
     section => [section.stats[0]?.added, section.stats[0]?.deleted],
   );
   return { code, tests, all };
