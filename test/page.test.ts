@@ -129,6 +129,34 @@ describe('renderPage', () => {
     expect(count(page, /class="bar /g)).toBe(0);
   });
 
+  // 言語別のグラフの凡例に、言語の名前と、期間全体の純増が並ぶ
+  test('lists the name and the net change of each language in the legend of the language chart', () => {
+    const page = renderPage('my-repo', [byLanguage], 0);
+
+    expect(page).toContain('Rust<span class="total">+780</span>');
+    expect(page).toContain('Java<span class="total">+900</span>');
+  });
+
+  // 言語別のグラフの表に、日ごとの、言語ごとの累計が並ぶ
+  test('lists the cumulative lines of each language of each day in the table of the language chart', () => {
+    const page = renderPage('my-repo', [byLanguage], 0);
+
+    expect(page).toContain('<th>日付</th><th>Rust</th><th>Java</th>');
+    expect(page).toContain(
+      '<tr><td>2026-11-18</td><td>+780</td><td>+900</td></tr>',
+    );
+  });
+
+  // 変更のある言語がないとき、言語別のグラフを出さない
+  test('shows no language chart when no language has changes', () => {
+    const empty = {
+      label: '1週間',
+      sections: [{ heading: 'コード本体', stats: noChanges, languages: [] }],
+    };
+
+    expect(count(renderPage('my-repo', [empty], 0), /<svg /g)).toBe(1);
+  });
+
   // 期間ごとのボタンを、渡した順に並べる
   test('places a button for each period in the given order', () => {
     const page = renderPage('my-repo', [week, month], 0);
