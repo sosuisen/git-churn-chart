@@ -52,6 +52,7 @@ main {
 h1 { margin: 0; font-size: 20px; }
 .periods { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 16px; }
 .periods button { padding: 4px 12px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); font: inherit; font-size: 13px; cursor: pointer; }
+.periods button[aria-pressed="true"] { background: var(--text-primary); border-color: var(--text-primary); color: var(--surface); }
 .period { margin: 0 0 16px; color: var(--text-secondary); font-size: 14px; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 0 0 20px; padding: 0; list-style: none; color: var(--text-secondary); font-size: 13px; }
 .legend li { display: flex; align-items: center; gap: 6px; }
@@ -131,6 +132,18 @@ for (const chart of document.querySelectorAll('.chart')) {
     target.addEventListener('blur', hide);
   }
 }
+const buttons = document.querySelectorAll('.periods button');
+const views = document.querySelectorAll('.view');
+for (const button of buttons) {
+  button.addEventListener('click', () => {
+    for (const other of buttons) {
+      other.setAttribute('aria-pressed', String(other === button));
+    }
+    for (const view of views) {
+      view.hidden = view.dataset.period !== button.dataset.period;
+    }
+  });
+}
 `;
 
 /** One chart of the page with its heading. */
@@ -163,7 +176,7 @@ export function renderPage(
 ): string {
   const buttons = periods.map(
     (period, index) =>
-      `<button type="button" data-period="${index}">${escapeHtml(period.label)}</button>`,
+      `<button type="button" data-period="${index}" aria-pressed="${index === selected}">${escapeHtml(period.label)}</button>`,
   );
   const views = periods.map((period, index) =>
     renderPeriod(period, index, index === selected),
