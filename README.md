@@ -58,23 +58,36 @@ Node.jsがTypeScriptを直接実行するので、ビルドは要らない。
 
 ## 使い方
 
+グラフを作って、そのままブラウザで開くには、次を実行する。
+
 ```
-node src/main.ts [リポジトリのパス] [--days 日数] [--out 出力ファイル]
+npm run dev -- [リポジトリのパス]
 ```
 
-| 引数             | 意味                 | 既定値             |
-| ---------------- | -------------------- | ------------------ |
-| リポジトリのパス | 調べるGitリポジトリ  | 現在のディレクトリ |
-| `--days`         | 今日までの日数       | `14`               |
-| `--out`          | 出力するHTMLファイル | `churn-chart.html` |
+`--`の後ろに、下の表の引数を書ける。パスを省くと、このリポジトリ自身のグラフになる。
+
+```
+npm run dev -- F:/work/my-app --days 30
+```
+
+ブラウザを開かずに、HTMLだけを作るには、次を実行する。
+
+```
+node src/main.ts [リポジトリのパス] [--days 日数] [--out 出力ファイル] [--open]
+```
+
+| 引数             | 意味                         | 既定値             |
+| ---------------- | ---------------------------- | ------------------ |
+| リポジトリのパス | 調べるGitリポジトリ          | 現在のディレクトリ |
+| `--days`         | 今日までの日数               | `14`               |
+| `--out`          | 出力するHTMLファイル         | `churn-chart.html` |
+| `--open`         | 出力したHTMLをブラウザで開く | 開かない           |
 
 例:
 
-```
-node src/main.ts F:\work\my-app --out my-app.html
-```
-
-出力したHTMLをブラウザで開く。棒や点にマウスを載せると、その日の数値が出る。「表で見る」を開くと、同じ数値が表で出る。
+````
+node src/main.ts F:/work/my-app --out my-app.html
+```棒や点にマウスを載せると、その日の数値が出る。「表で見る」を開くと、同じ数値が表で出る。
 
 ## 数え方
 
@@ -85,10 +98,15 @@ node src/main.ts F:\work\my-app --out my-app.html
 
 ## 開発
 
-```
+````
+
 npm install
-npm test             # テスト
-npm run typecheck    # 型検査
-npm run format       # 整形
-npm run coverage     # カバレッジ
+npm run dev # グラフを作ってブラウザで開く
+npm test # テスト
+npm run typecheck # 型検査
+npm run format # 整形
+npm run coverage # カバレッジ
+
+```
+
 ```
