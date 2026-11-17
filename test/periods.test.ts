@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import type { FileChange } from '../src/patch-log.ts';
-import { buildPeriods, type Period } from '../src/periods.ts';
+import type { Period } from '../src/page.ts';
+import { buildPeriods } from '../src/periods.ts';
 
 /** Stats of the last chart of a period. It is the chart of all files. */
 const allFiles = (period: Period | undefined) =>

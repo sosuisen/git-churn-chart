@@ -138,6 +138,14 @@ export interface ChartSection {
   readonly stats: readonly DailyStat[];
 }
 
+/** One period that the page can show, with its charts. */
+export interface Period {
+  /** Name of the period. It is shown on the button that selects the period. */
+  readonly label: string;
+  /** Charts of the period. It must not be empty. All sections cover the same days. */
+  readonly sections: readonly ChartSection[];
+}
+
 /**
  * Builds a self-contained HTML page. Each section has a chart and a table view.
  * The sections are placed from top to bottom.
