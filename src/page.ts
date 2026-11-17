@@ -4,6 +4,7 @@ import {
   renderLanguagesSvg,
 } from './chart-svg.ts';
 import type { DailyStat } from './daily-stats.ts';
+import type { DailyLines } from './file-lines.ts';
 import { escapeHtml, formatCount, formatSigned } from './format.ts';
 
 const MINUS = '−';
@@ -196,6 +197,19 @@ export interface Period {
   readonly label: string;
   /** Charts of the period. It must not be empty. All sections cover the same days. */
   readonly sections: readonly ChartSection[];
+  /**
+   * The number of lines of one file. When it is set, the last chart
+   * of the period draws it as a line. It covers the same days as the sections.
+   */
+  readonly tracked?: FileLines;
+}
+
+/** The number of lines of one file on each day of a period. */
+export interface FileLines {
+  /** Path of the file. It is shown in the heading. */
+  readonly path: string;
+  /** Days in date order. */
+  readonly days: readonly DailyLines[];
 }
 
 /**
