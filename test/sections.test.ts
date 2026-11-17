@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import type { ChartSection } from '../src/page.ts';
 import type { FileChange } from '../src/patch-log.ts';
 import { buildSections } from '../src/sections.ts';
 
@@ -53,6 +54,34 @@ describe('buildSections', () => {
     const stat = buildSections([file], '2026-11-18', 1)[2]?.stats[0];
 
     expect([stat?.added, stat?.deleted]).toEqual([2, 1]);
+  });
+
+  // コード本体とテストコードは、変更のある言語ごとに、日ごとの行数を持つ。ほかのグラフは持たない
+  test('gives code and tests the daily lines of each language with changes, and not the other charts', () => {
+    const [code, tests, testCount, all] = buildSections(
+      [
+        change('src/lib.rs', ['a', 'b'], ['c']),
+        change('src/main/java/App.java', ['a']),
+        change('src/test/java/AppTest.java', ['a', 'b', 'c']),
+        change('README.md', ['a']),
+      ],
+      '2026-11-18',
+      1,
+    );
+    const lines = (section: ChartSection | undefined) =>
+      section?.languages?.map(({ name, stats }) => [
+        name,
+        stats[0]?.added,
+        stats[0]?.deleted,
+      ]);
+
+    expect(lines(code)).toEqual([
+      ['Rust', 2, 1],
+      ['Java', 1, 0],
+    ]);
+    expect(lines(tests)).toEqual([['Java', 3, 0]]);
+    expect(testCount?.languages).toBeUndefined();
+    expect(all?.languages).toBeUndefined();
   });
 
   // コードでないファイルは、すべてのファイルにだけ入る
