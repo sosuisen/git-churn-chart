@@ -165,6 +165,9 @@ export function renderPage(
     (period, index) =>
       `<button type="button" data-period="${index}">${escapeHtml(period.label)}</button>`,
   );
+  const views = periods.map((period, index) =>
+    renderPeriod(period, index, index === selected),
+  );
   const title = `${escapeHtml(repoName)} のコード行数の変化`;
   return `<!doctype html>
 <html lang="ja">
@@ -185,7 +188,7 @@ ${buttons.join('\n')}
 <li><span class="swatch" style="background: var(--deleted)"></span>削除した行</li>
 <li><span class="swatch line" style="background: var(--cumulative)"></span>純増の累計（追加 ${MINUS} 削除）</li>
 </ul>
-${periods.map(renderPeriod).join('\n')}
+${views.join('\n')}
 </main>
 <script>${SCRIPT}</script>
 </body>
@@ -193,7 +196,11 @@ ${periods.map(renderPeriod).join('\n')}
 `;
 }
 
-function renderPeriod(period: Period, index: number): string {
+function renderPeriod(
+  period: Period,
+  index: number,
+  isSelected: boolean,
+): string {
   const stats = period.sections[0]?.stats;
   if (stats === undefined) {
     throw new RangeError('sections must not be empty');
@@ -202,7 +209,7 @@ function renderPeriod(period: Period, index: number): string {
   const body = period.sections.map(renderSection).join('\n');
   const first = stats[0]?.date ?? '';
   const last = stats.at(-1)?.date ?? '';
-  return `<div class="view" data-period="${index}">
+  return `<div class="view" data-period="${index}"${isSelected ? '' : ' hidden'}>
 <p class="period">${first} 〜 ${last}（${stats.length}日間）</p>
 ${body}
 </div>`;
