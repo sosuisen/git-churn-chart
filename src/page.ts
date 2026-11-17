@@ -167,13 +167,17 @@ export interface Period {
  *
  * @param repoName Name of the repository. It is shown in the title.
  * @param periods Periods to show. Each period gets a button that selects it.
- * @param selected Index of the period that the page shows first.
+ * @param selected Index of the period that the page shows first. It must be an index of `periods`.
  */
 export function renderPage(
   repoName: string,
   periods: readonly Period[],
   selected: number,
 ): string {
+  // Without this check, the page would hide every period.
+  if (periods[selected] === undefined) {
+    throw new RangeError(`selected must be an index of periods: ${selected}`);
+  }
   const buttons = periods.map(
     (period, index) =>
       `<button type="button" data-period="${index}" aria-pressed="${index === selected}">${escapeHtml(period.label)}</button>`,
