@@ -17,6 +17,7 @@ export const CODE_EXTENSIONS: readonly string[] = [
   'jsx',
   'mjs',
   'cjs',
+  'java',
 ];
 
 const CODE_EXTENSION_SET = new Set(CODE_EXTENSIONS);
