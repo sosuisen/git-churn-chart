@@ -116,6 +116,11 @@ describe('renderPage', () => {
     expect(page).not.toContain('<script> のコード行数の変化');
   });
 
+  // 選んだ期間が範囲の外のとき、例外を投げる
+  test('throws when the selected period is out of range', () => {
+    expect(() => renderPage('my-repo', [week], 1)).toThrow(RangeError);
+  });
+
   // セクションが1つもないとき、例外を投げる
   test('throws when there are no sections', () => {
     const empty = { label: '1週間', sections: [] };
