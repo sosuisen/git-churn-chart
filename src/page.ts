@@ -1,4 +1,8 @@
-import { type LanguageLine, renderChartSvg } from './chart-svg.ts';
+import {
+  type LanguageLine,
+  renderChartSvg,
+  renderLanguagesSvg,
+} from './chart-svg.ts';
 import type { DailyStat } from './daily-stats.ts';
 import { escapeHtml, formatCount, formatSigned } from './format.ts';
 
@@ -18,6 +22,13 @@ const STYLE = `
   --added: #2a78d6;
   --deleted: #eb6834;
   --cumulative: #1baf7a;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -32,6 +43,13 @@ const STYLE = `
     --added: #3987e5;
     --deleted: #d95926;
     --cumulative: #199e70;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #0ca30c;
+    --series-7: #9085e9;
   }
 }
 body {
@@ -60,6 +78,9 @@ h1 { margin: 0; font-size: 20px; }
 .swatch.line { height: 2px; border-radius: 1px; }
 section + section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--grid); }
 h2 { margin: 0 0 8px; font-size: 16px; }
+h3 { margin: 24px 0 8px; color: var(--text-secondary); font-size: 14px; }
+h3 + .legend { margin-bottom: 8px; }
+.legend .total { color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .chart { position: relative; }
 svg { display: block; width: 100%; height: auto; }
 .grid { stroke: var(--grid); stroke-width: 1; }
@@ -68,6 +89,13 @@ svg { display: block; width: 100%; height: auto; }
 .bar.added { fill: var(--added); }
 .bar.deleted { fill: var(--deleted); }
 .line { fill: none; stroke: var(--cumulative); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.line.series-1 { stroke: var(--series-1); }
+.line.series-2 { stroke: var(--series-2); }
+.line.series-3 { stroke: var(--series-3); }
+.line.series-4 { stroke: var(--series-4); }
+.line.series-5 { stroke: var(--series-5); }
+.line.series-6 { stroke: var(--series-6); }
+.line.series-7 { stroke: var(--series-7); }
 .marker { fill: var(--cumulative); stroke: var(--surface); stroke-width: 2; }
 .end-label { fill: var(--text-primary); font-size: 13px; font-weight: 600; }
 .hit { fill: var(--text-primary); fill-opacity: 0; outline: none; }
@@ -238,50 +266,83 @@ ${body}
 </div>`;
 }
 
+/** The values of one day. The tooltip and the table view both show them. */
+interface Row {
+  readonly date: string;
+  readonly values: readonly (readonly [label: string, value: string])[];
+}
+
 function renderSection(section: ChartSection): string {
+  const languages = section.languages ?? [];
   return `<section>
 <h2>${escapeHtml(section.heading)}</h2>
-<div class="chart">
-${renderChartSvg(section.stats)}
-<div class="tooltip" hidden></div>
-<script type="application/json">${toJson(section.stats)}</script>
-</div>
-<details>
-<summary>表で見る</summary>
-${renderTable(section.stats)}
-</details>
+${renderChart(renderChartSvg(section.stats), section.stats.map(toRow))}
+${languages.length === 0 ? '' : renderLanguages(languages)}
 </section>`;
 }
 
-function renderTable(stats: readonly DailyStat[]): string {
-  const rows = stats.map(
-    stat =>
-      `<tr><td>${stat.date}</td>${labeledValues(stat)
+function renderLanguages(languages: readonly LanguageLine[]): string {
+  const items = languages.map(
+    ({ name, colorIndex, stats }) =>
+      `<li><span class="swatch line" style="background: var(--series-${colorIndex + 1})"></span>${escapeHtml(name)}<span class="total">${formatSigned(stats.at(-1)?.cumulative ?? 0)}</span></li>`,
+  );
+  return `<h3>言語別の、純増の累計</h3>
+<ul class="legend">
+${items.join('\n')}
+</ul>
+${renderChart(renderLanguagesSvg(languages), toLanguageRows(languages))}`;
+}
+
+/** A chart with its tooltip and its table view. */
+function renderChart(svg: string, rows: readonly Row[]): string {
+  const labels = rows[0]?.values.map(([label]) => label) ?? [];
+  const bodyRows = rows.map(
+    row =>
+      `<tr><td>${row.date}</td>${row.values
         .map(([, value]) => `<td>${value}</td>`)
         .join('')}</tr>`,
   );
-  return `<table>
-<thead><tr><th>日付</th><th>追加</th><th>削除</th><th>純増</th><th>累計</th></tr></thead>
-<tbody>
-${rows.join('\n')}
-</tbody>
-</table>`;
-}
-
-function labeledValues(stat: DailyStat): [label: string, value: string][] {
-  return [
-    ['追加', stat.added === 0 ? '0' : `+${formatCount(stat.added)}`],
-    ['削除', stat.deleted === 0 ? '0' : `${MINUS}${formatCount(stat.deleted)}`],
-    ['純増', formatSigned(stat.net)],
-    ['累計', formatSigned(stat.cumulative)],
-  ];
-}
-
-function toJson(stats: readonly DailyStat[]): string {
-  const rows = stats.map(stat => ({
-    date: stat.date,
-    values: labeledValues(stat),
-  }));
   // "<" must not appear as is. It could end the script element early.
-  return JSON.stringify(rows).replaceAll('<', '\\u003c');
+  const json = JSON.stringify(rows).replaceAll('<', '\\u003c');
+  return `<div class="chart">
+${svg}
+<div class="tooltip" hidden></div>
+<script type="application/json">${json}</script>
+</div>
+<details>
+<summary>表で見る</summary>
+<table>
+<thead><tr><th>日付</th>${labels.map(label => `<th>${escapeHtml(label)}</th>`).join('')}</tr></thead>
+<tbody>
+${bodyRows.join('\n')}
+</tbody>
+</table>
+</details>`;
+}
+
+function toRow(stat: DailyStat): Row {
+  return {
+    date: stat.date,
+    values: [
+      ['追加', stat.added === 0 ? '0' : `+${formatCount(stat.added)}`],
+      [
+        '削除',
+        stat.deleted === 0 ? '0' : `${MINUS}${formatCount(stat.deleted)}`,
+      ],
+      ['純増', formatSigned(stat.net)],
+      ['累計', formatSigned(stat.cumulative)],
+    ],
+  };
+}
+
+/** One row for each day, with the cumulative net change of each language. */
+function toLanguageRows(languages: readonly LanguageLine[]): Row[] {
+  const days = languages[0]?.stats ?? [];
+  return days.map((day, index) => ({
+    date: day.date,
+    values: languages.map(
+      ({ name, stats }) =>
+        [name, formatSigned(stats[index]?.cumulative ?? 0)] as const,
+    ),
+  }));
 }

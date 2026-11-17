@@ -76,6 +76,48 @@ export function renderChartSvg(stats: readonly DailyStat[]): string {
   return parts.filter(part => part !== '').join('\n');
 }
 
+/**
+ * Draws the cumulative net change of each language as a line.
+ * It has no columns. All lines share one y axis.
+ *
+ * @param lines Languages to draw. It must not be empty. Every language covers the same days.
+ */
+export function renderLanguagesSvg(lines: readonly LanguageLine[]): string {
+  const days = lines[0]?.stats ?? [];
+  if (days.length === 0) {
+    throw new RangeError('lines must have at least one language with days');
+  }
+  const totals = lines.flatMap(line => line.stats.map(s => s.cumulative));
+  const ticks = niceTicks(Math.min(0, ...totals), Math.max(0, ...totals));
+  const low = ticks[0] ?? 0;
+  const high = ticks.at(-1) ?? 1;
+  const toY = (value: number) =>
+    PLOT_BOTTOM - ((value - low) / (high - low)) * PLOT_HEIGHT;
+  const band = PLOT_WIDTH / days.length;
+  const toX = (index: number) => MARGIN.left + band * (index + 0.5);
+  const labelStep = Math.ceil(MIN_DAY_LABEL_WIDTH / band);
+
+  const parts = [
+    `<svg viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="言語ごとの、純増の累計">`,
+    grid(ticks, toY),
+    ...days.map((stat, index) =>
+      (days.length - 1 - index) % labelStep === 0
+        ? dayLabel(stat, toX(index))
+        : '',
+    ),
+    `<line class="baseline" x1="${MARGIN.left}" x2="${MARGIN.left + PLOT_WIDTH}" y1="${round(toY(0))}" y2="${round(toY(0))}"/>`,
+    ...lines.map(line => {
+      const points = line.stats.map(
+        (stat, index) => `${round(toX(index))},${round(toY(stat.cumulative))}`,
+      );
+      return `<polyline class="line series-${line.colorIndex + 1}" points="${points.join(' ')}"/>`;
+    }),
+    ...days.map((_, index) => hitTarget(index, toX(index), band)),
+    '</svg>',
+  ];
+  return parts.filter(part => part !== '').join('\n');
+}
+
 function grid(
   ticks: readonly number[],
   toY: (value: number) => number,
