@@ -57,4 +57,21 @@ describe('countTests', () => {
     expect(countTests(change('test/parser.test.ts', lines)).added).toBe(4);
     expect(countTests(change('test/parser.spec.jsx', lines)).added).toBe(4);
   });
+
+  // Kotlinは、@Testと@ParameterizedTestを数える
+  test('counts @Test and @ParameterizedTest in Kotlin', () => {
+    const file = change('src/test/kotlin/ParserTest.kt', [
+      'class ParserTest {',
+      '    @Test',
+      '    fun readsALine() {}',
+      '    @ParameterizedTest',
+      '    @ValueSource(ints = [1, 2])',
+      '    fun readsLines(count: Int) {}',
+      '    @Test fun readsNothing() {}',
+      '    @TestFactory',
+      '}',
+    ]);
+
+    expect(countTests(file).added).toBe(3);
+  });
 });
