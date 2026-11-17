@@ -46,6 +46,36 @@ describe('buildPeriods', () => {
     ]);
   });
 
+  // ファイルを指定すると、どの期間も、そのファイルの日ごとの行数を持つ
+  test('gives every period the daily lines of the file when a file is tracked', () => {
+    const periods = buildPeriods(
+      [change('2026-11-18', ['a', 'b'])],
+      '2026-11-18',
+      { path: 'README.md', lines: 5 },
+    );
+
+    expect(
+      periods.map(({ tracked }) => [
+        tracked?.path,
+        tracked?.days.length,
+        tracked?.days[0]?.lines,
+        tracked?.days.at(-1)?.lines,
+      ]),
+    ).toEqual([
+      ['README.md', 7, 3, 5],
+      ['README.md', 14, 3, 5],
+      ['README.md', 30, 3, 5],
+      ['README.md', 90, 3, 5],
+      ['README.md', 180, 3, 5],
+      ['README.md', 365, 3, 5],
+    ]);
+  });
+
+  // ファイルを指定しないとき、期間は行数を持たない
+  test('gives the periods no daily lines when no file is tracked', () => {
+    expect(buildPeriods([], '2026-11-18')[0]?.tracked).toBeUndefined();
+  });
+
   // 累計は、期間ごとに、その期間の最初の日から数える
   test('counts the cumulative lines from the first day of each period', () => {
     const periods = buildPeriods(
