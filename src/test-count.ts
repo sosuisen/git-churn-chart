@@ -1,8 +1,20 @@
 import type { LineCount } from './daily-stats.ts';
 import type { FileChange } from './patch-log.ts';
 
-/** `#[test]`, `#[tokio::test]`, `#[tokio::test(...)]`. Not `#[cfg(test)]`. */
-const RUST_TEST = /^#\[(?:\w+::)*\w*test[\](]/;
+/** `test(`, `it(`, and their variants such as `test.each(` and `it.skip(`. */
+const JS_TEST = /^(?:test|it)(?:\.\w+)*\(/;
+
+/** Pattern of a line that declares one test, by the extension of the file. */
+const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
+  // `#[test]`, `#[tokio::test]`, `#[tokio::test(...)]`. Not `#[cfg(test)]`.
+  rs: /^#\[(?:\w+::)*\w*test[\](]/,
+  ts: JS_TEST,
+  tsx: JS_TEST,
+  js: JS_TEST,
+  jsx: JS_TEST,
+  mjs: JS_TEST,
+  cjs: JS_TEST,
+};
 
 /**
  * Counts the tests that a change adds and deletes.
@@ -12,8 +24,13 @@ const RUST_TEST = /^#\[(?:\w+::)*\w*test[\](]/;
  * A test with many cases counts as one test.
  */
 export function countTests(change: FileChange): LineCount {
+  const extension = change.path.split('.').pop()?.toLowerCase() ?? '';
+  const declaration = TEST_DECLARATIONS[extension];
+  if (declaration === undefined) {
+    return { added: 0, deleted: 0 };
+  }
   const count = (lines: readonly string[]) =>
-    lines.filter(line => RUST_TEST.test(line.trim())).length;
+    lines.filter(line => declaration.test(line.trim())).length;
   return {
     added: sum(change.hunks.map(hunk => count(hunk.added))),
     deleted: sum(change.hunks.map(hunk => count(hunk.deleted))),
