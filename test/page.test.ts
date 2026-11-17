@@ -100,6 +100,14 @@ describe('renderPage', () => {
     expect(page).toContain('<div class="view" data-period="1">');
   });
 
+  // 選んだ期間のボタンは、押された状態である
+  test('marks only the button of the selected period as pressed', () => {
+    const page = renderPage('my-repo', [week, month], 1);
+
+    expect(page).toContain('aria-pressed="false">1週間</button>');
+    expect(page).toContain('aria-pressed="true">1か月</button>');
+  });
+
   // リポジトリ名はエスケープして表示する
   test('escapes the repository name', () => {
     const page = renderPage('<script>', [week], 0);
