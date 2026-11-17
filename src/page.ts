@@ -29,6 +29,7 @@ const STYLE = `
   --series-5: #e87ba4;
   --series-6: #008300;
   --series-7: #6250d6;
+  --series-8: #e34948;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -50,6 +51,7 @@ const STYLE = `
     --series-5: #d55181;
     --series-6: #0ca30c;
     --series-7: #9085e9;
+    --series-8: #e66767;
   }
 }
 body {
@@ -96,6 +98,7 @@ svg { display: block; width: 100%; height: auto; }
 .line.series-5 { stroke: var(--series-5); }
 .line.series-6 { stroke: var(--series-6); }
 .line.series-7 { stroke: var(--series-7); }
+.line.series-8 { stroke: var(--series-8); }
 .marker { fill: var(--cumulative); stroke: var(--surface); stroke-width: 2; }
 .end-label { fill: var(--text-primary); font-size: 13px; font-weight: 600; }
 .hit { fill: var(--text-primary); fill-opacity: 0; outline: none; }
