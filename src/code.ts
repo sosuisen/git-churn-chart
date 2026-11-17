@@ -6,6 +6,7 @@
  *
  * The order is fixed. The color of a language in a chart comes from its position.
  * Add a new language at the end, so that the other languages keep their colors.
+ * The page has eight colors. A ninth language needs a new design, not a ninth color.
  */
 const LANGUAGE_EXTENSIONS = [
   { name: 'Rust', extensions: ['rs'] },

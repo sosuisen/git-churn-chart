@@ -17,24 +17,34 @@
 3. テストの数
 4. すべてのファイル
 
+「コード本体」と「テストコード」のグラフの下には、言語別のグラフも出る。言語ごとに、純増の累計を1本の線で描く。棒はない。
+
+- 期間の中に変更のない言語は出ない。
+- 言語の色は決まっている。期間やグラフが変わっても、同じ言語は同じ色である。
+- 凡例の数は、期間全体の純増である。
+
 ### コードの範囲
 
 「コード本体」と「テストコード」は、次の拡張子のファイルだけを数える。対象の拡張子は、グラフの見出しにも出る。
 
-| 言語                   | 拡張子                                  |
-| ---------------------- | --------------------------------------- |
-| Rust                   | `.rs`                                   |
-| Swift                  | `.swift`                                |
-| Kotlin                 | `.kt`                                   |
-| C#・XAML               | `.cs` `.xaml`                           |
-| Emacs Lisp             | `.el`                                   |
-| TypeScript・JavaScript | `.ts` `.tsx` `.js` `.jsx` `.mjs` `.cjs` |
+| 言語                   | 拡張子                                       |
+| ---------------------- | -------------------------------------------- |
+| Rust                   | `.rs`                                        |
+| Swift                  | `.swift`                                     |
+| Kotlin                 | `.kt`                                        |
+| C#・XAML               | `.cs` `.xaml`                                |
+| Emacs Lisp             | `.el`                                        |
+| TypeScript・JavaScript | `.ts` `.tsx` `.js` `.jsx` `.mjs` `.cjs`      |
+| Java                   | `.java`                                      |
+| C++                    | `.cpp` `.cc` `.cxx` `.hpp` `.hh` `.hxx` `.h` |
+
+`.h`は、CやObjective-Cのヘッダーでも、C++として数える。
 
 - ドキュメント、設定（JSON、TOML、YAMLなど）、ロックファイル、画像は数えない。
 - HTML・CSSも数えない。
 - スクリプトも数えない。シェル、PowerShell、バッチ、Python、Kotlin Script（`.kts`）である。
 - 名前を変えたファイルは、新しいパスで判定する。
-- 一覧は`src/code.ts`の`CODE_EXTENSIONS`にある。
+- 一覧は`src/code.ts`の`LANGUAGE_EXTENSIONS`にある。
 
 ### テストコードの範囲
 
@@ -64,6 +74,8 @@ Rustは、本体と同じファイルにテストを書ける。そこで、Rust
 | C#                     | `[Fact]`、`[Theory]`、`[Test]`、`[TestMethod]` |
 | Emacs Lisp             | `(ert-deftest`                                 |
 | TypeScript・JavaScript | `test(`、`it(`。`test.each(`なども含む         |
+| Java                   | `@Test`、`@ParameterizedTest`                  |
+| C++                    | `TEST(`、`TEST_F(`、`TEST_P(`、`TEST_CASE(`    |
 
 - この数は推定である。変更した行だけを読む。
 - ケースがいくつあっても、1つの宣言は1つのテストである。`test.each`や`[Theory]`が当たる。
