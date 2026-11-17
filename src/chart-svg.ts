@@ -16,6 +16,19 @@ const MARKER_RADIUS = 4;
 // Markers that are closer than this overlap and hide the line.
 const MIN_MARKER_SPACING = 10;
 
+/** The changes of one language. A chart of languages draws it as one line. */
+export interface LanguageLine {
+  /** Name of the language. */
+  readonly name: string;
+  /**
+   * Position of the language in the fixed list of languages, from 0.
+   * It selects the color. So a language keeps its color in every chart.
+   */
+  readonly colorIndex: number;
+  /** Days in date order. */
+  readonly stats: readonly DailyStat[];
+}
+
 /**
  * Draws the chart as an SVG element.
  * Added lines are columns above zero. Deleted lines are columns below zero.

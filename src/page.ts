@@ -1,4 +1,4 @@
-import { renderChartSvg } from './chart-svg.ts';
+import { type LanguageLine, renderChartSvg } from './chart-svg.ts';
 import type { DailyStat } from './daily-stats.ts';
 import { escapeHtml, formatCount, formatSigned } from './format.ts';
 
@@ -151,6 +151,12 @@ export interface ChartSection {
   readonly heading: string;
   /** Days in date order. It must not be empty. */
   readonly stats: readonly DailyStat[];
+  /**
+   * The same numbers split by language. When it is set, a second chart
+   * below the first one shows the cumulative line of each language.
+   * Every language covers the same days as `stats`.
+   */
+  readonly languages?: readonly LanguageLine[];
 }
 
 /** One period that the page can show, with its charts. */
