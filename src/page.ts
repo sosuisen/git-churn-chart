@@ -201,8 +201,8 @@ export function renderPage(
 ${buttons.join('\n')}
 </div>
 <ul class="legend">
-<li><span class="swatch" style="background: var(--added)"></span>追加した行</li>
-<li><span class="swatch" style="background: var(--deleted)"></span>削除した行</li>
+<li><span class="swatch" style="background: var(--added)"></span>追加（行。テストの数のグラフでは、テスト）</li>
+<li><span class="swatch" style="background: var(--deleted)"></span>削除</li>
 <li><span class="swatch line" style="background: var(--cumulative)"></span>純増の累計（追加 ${MINUS} 削除）</li>
 </ul>
 ${views.join('\n')}

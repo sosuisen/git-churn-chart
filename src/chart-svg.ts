@@ -41,7 +41,7 @@ export function renderChartSvg(stats: readonly DailyStat[]): string {
   const labelStep = Math.ceil(MIN_DAY_LABEL_WIDTH / band);
 
   const parts = [
-    `<svg viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="日ごとの追加行数・削除行数と、純増の累計">`,
+    `<svg viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="日ごとの追加・削除と、純増の累計">`,
     grid(ticks, toY),
     ...stats.map((stat, index) =>
       // The count starts from the last day. The last day always has a label.
