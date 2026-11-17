@@ -11,6 +11,8 @@ const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
   // XCTest names a test `func test...`. Swift Testing marks a test with `@Test`.
   swift: /^(?:@Test\b|(?:\w+ )*func test\w*\()/,
   kt: /^@(?:Test|ParameterizedTest)\b/,
+  // xUnit, NUnit, and MSTest. `[TestClass]` and `[TestCase]` are not tests.
+  cs: /^\[(?:Fact|Theory|Test|TestMethod)\b/,
   ts: JS_TEST,
   tsx: JS_TEST,
   js: JS_TEST,
