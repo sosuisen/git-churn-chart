@@ -15,7 +15,7 @@ const USAGE = `Usage: node src/main.ts [repository] [--days <number>] [--out <fi
   --days      Period that the page shows first: ${PERIOD_DAYS.join(', ')}. Default: 14
   --out       Path of the HTML file to write. Default: churn-chart.html
   --track     Path of a file in the repository, such as docs/plans.md.
-              The page adds a chart of its number of lines on each day
+              The page shows only a chart of its number of lines on each day
   --open      Open the HTML file in the browser`;
 
 function main(): void {
