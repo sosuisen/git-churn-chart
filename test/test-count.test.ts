@@ -30,4 +30,31 @@ describe('countTests', () => {
 
     expect(countTests(file)).toEqual({ added: 3, deleted: 0 });
   });
+
+  // 削除した宣言は、減ったテストとして数える
+  test('counts a deleted declaration as a deleted test', () => {
+    const file = change(
+      'src/lib.rs',
+      ['    #[test]', '    fn adds() {}'],
+      ['    #[test]', '    fn old() {}', '    #[test]', '    fn older() {}'],
+    );
+
+    expect(countTests(file)).toEqual({ added: 1, deleted: 2 });
+  });
+
+  // TypeScript・JavaScriptは、test(とit(を数える。describe(は数えない
+  test('counts test( and it( in TypeScript and JavaScript, but not describe(', () => {
+    const lines = [
+      "describe('parser', () => {",
+      "  test('reads a line', () => {});",
+      "  it('reads two lines', () => {});",
+      "  test.each([1, 2])('reads %i lines', () => {});",
+      "  it.skip('reads no lines', () => {});",
+      '  const latest = newest(items);',
+      '});',
+    ];
+
+    expect(countTests(change('test/parser.test.ts', lines)).added).toBe(4);
+    expect(countTests(change('test/parser.spec.jsx', lines)).added).toBe(4);
+  });
 });
