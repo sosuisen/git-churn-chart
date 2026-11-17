@@ -181,6 +181,20 @@ describe('renderPage', () => {
     );
   });
 
+  // 行数のグラフは、線の終点に最後の日の行数を表示し、表に日ごとの行数を並べる
+  test('shows the lines of the last day at the end of the line and lists the lines of each day in the table', () => {
+    const page = renderPage('my-repo', [withTracked], 0);
+
+    expect(page).toContain('>8行</text>');
+    expect(page).toContain('<th>日付</th><th>行数</th>');
+    expect(page).toContain('<tr><td>2026-11-17</td><td>1,500</td></tr>');
+  });
+
+  // 行数を持たない期間は、行数のグラフを描かない
+  test('draws no chart of lines when the period has no tracked file', () => {
+    expect(renderPage('my-repo', [week], 0)).not.toContain('の行数</h2>');
+  });
+
   // 期間ごとのボタンを、渡した順に並べる
   test('places a button for each period in the given order', () => {
     const page = renderPage('my-repo', [week, month], 0);
