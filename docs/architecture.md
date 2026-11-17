@@ -6,6 +6,8 @@
 
 グラフは3つある。上から、コード本体、テストコード、すべてのファイルである。
 
+期間は3つある。1週間（7日）、2週間（14日）、1か月（30日）である。HTMLは3つの期間のグラフをすべて持ち、ページの上のボタンで表示を切り替える。
+
 ## モジュール
 
 すべて`src/`にある。クラスは使わず、関数だけで作る。
@@ -21,6 +23,7 @@
 | `category.ts`         | 1つのファイルの変更行を、コード本体・テスト・その他に分ける | `countByCategory`                          |
 | `daily-stats.ts`      | 行数を、日ごとに集計する                                    | `buildDailyStats`、`addDays`               |
 | `sections.ts`         | 3つのグラフのデータと見出しを作る                           | `buildSections`                            |
+| `periods.ts`          | 期間ごとに、3つのグラフのデータを作る                       | `buildPeriods`、`PERIOD_DAYS`              |
 | `scale.ts`            | 軸の目盛りを決める                                          | `niceTicks`                                |
 | `format.ts`           | 数と日付を文字列にする。HTMLをエスケープする                | `formatSigned`、`formatTick`、`escapeHtml` |
 | `chart-svg.ts`        | グラフをSVGで描く                                           | `renderChartSvg`                           |
@@ -31,9 +34,10 @@
 ```
 main → git → patch-log
 main → patch-log
-main → sections → category → code, test-path, rust-test-module
-       sections → daily-stats
-       sections → code, page（型だけ）
+main → periods → sections → category → code, test-path, rust-test-module
+                 sections → daily-stats
+                 sections → code, page（型だけ）
+       periods → page（型だけ）
 main → page → chart-svg → scale, format
               page → format
 ```
@@ -66,12 +70,14 @@ Rustの行単位の切り分けは、ファイル全体を読まない。変更�
 
 ## 主な処理の流れ
 
-1. `main`が引数を読み、今日の日付と開始日を決める。
+1. `main`が引数を読み、今日の日付と、最初に出す期間を決める。開始日は、最も長い期間（30日）の最初の日である。
 2. `readPatchLog`が、開始日以降のログを、差分つきで読む。
 3. `parsePatchLog`が、ログをファイルごとの変更行にする。
-4. `buildSections`が、ファイルごとに`countByCategory`で行を分け、3つのグラフのデータを作る。その中で`buildDailyStats`が、日ごとに合計し、変更のない日を0で埋め、累計を計算する。
-5. `renderPage`が、3つのセクションを上下に並べたHTMLを作る。セクションごとに`renderChartSvg`がグラフを描く。
-6. `main`がHTMLを書き出し、そのパスを表示する。`--open`が付いていれば、`openInBrowser`がHTMLを既定のブラウザで開く。
+4. `buildPeriods`が、期間ごとに`buildSections`を呼ぶ。
+5. `buildSections`が、ファイルごとに`countByCategory`で行を分け、3つのグラフのデータを作る。その中で`buildDailyStats`が、日ごとに合計し、変更のない日を0で埋め、累計を計算する。
+6. `renderPage`が、期間ごとのボタンと表示をHTMLにする。1つの表示には、3つのセクションが上下に並ぶ。セクションごとに`renderChartSvg`がグラフを描く。最初に出す期間のほかは、`hidden`で隠す。
+7. ブラウザでボタンを押すと、HTMLの中のスクリプトが、表示する期間を入れ替える。
+8. `main`がHTMLを書き出し、そのパスを表示する。`--open`が付いていれば、`openInBrowser`がHTMLを既定のブラウザで開く。
 
 ## 関連する文書
 

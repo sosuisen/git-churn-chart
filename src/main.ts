@@ -6,12 +6,12 @@ import { addDays } from './daily-stats.ts';
 import { readPatchLog } from './git.ts';
 import { renderPage } from './page.ts';
 import { parsePatchLog } from './patch-log.ts';
-import { buildSections } from './sections.ts';
+import { buildPeriods, PERIOD_DAYS } from './periods.ts';
 
 const USAGE = `Usage: node src/main.ts [repository] [--days <number>] [--out <file>] [--open]
 
   repository  Path of a local Git repository. Default: current directory
-  --days      Number of days to show, ending today. Default: 14
+  --days      Period that the page shows first: ${PERIOD_DAYS.join(', ')}. Default: 14
   --out       Path of the HTML file to write. Default: churn-chart.html
   --open      Open the HTML file in the browser`;
 
@@ -29,16 +29,19 @@ function main(): void {
     console.log(USAGE);
     return;
   }
-  const days = Number(values.days);
-  if (!Number.isInteger(days) || days < 1) {
-    throw new RangeError(`--days must be a positive integer: ${values.days}`);
+  const selected = PERIOD_DAYS.indexOf(Number(values.days));
+  if (selected === -1) {
+    throw new RangeError(
+      `--days must be one of ${PERIOD_DAYS.join(', ')}: ${values.days}`,
+    );
   }
   const repoPath = resolve(positionals[0] ?? '.');
   const today = localDate(new Date());
-  const log = readPatchLog(repoPath, addDays(today, -(days - 1)));
-  const sections = buildSections(parsePatchLog(log), today, days);
+  const longest = Math.max(...PERIOD_DAYS);
+  const log = readPatchLog(repoPath, addDays(today, -(longest - 1)));
+  const periods = buildPeriods(parsePatchLog(log), today);
   const outPath = resolve(values.out);
-  writeFileSync(outPath, renderPage(basename(repoPath), sections));
+  writeFileSync(outPath, renderPage(basename(repoPath), periods, selected));
   console.log(outPath);
   if (values.open) {
     openInBrowser(outPath);

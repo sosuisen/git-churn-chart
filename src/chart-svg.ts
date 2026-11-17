@@ -9,6 +9,8 @@ const PLOT_WIDTH = WIDTH - MARGIN.left - MARGIN.right;
 const PLOT_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
 const PLOT_BOTTOM = MARGIN.top + PLOT_HEIGHT;
 const MAX_BAR_WIDTH = 24;
+// A date such as "12/31" needs this width. Narrower days share one label.
+const MIN_DAY_LABEL_WIDTH = 40;
 const BAR_CORNER = 4;
 const MARKER_RADIUS = 4;
 
@@ -34,11 +36,17 @@ export function renderChartSvg(stats: readonly DailyStat[]): string {
   const band = PLOT_WIDTH / stats.length;
   const toX = (index: number) => MARGIN.left + band * (index + 0.5);
   const barWidth = Math.min(MAX_BAR_WIDTH, band / 2);
+  const labelStep = Math.ceil(MIN_DAY_LABEL_WIDTH / band);
 
   const parts = [
     `<svg viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="日ごとの追加行数・削除行数と、純増の累計">`,
     grid(ticks, toY),
-    ...stats.map((stat, index) => dayLabel(stat, toX(index))),
+    ...stats.map((stat, index) =>
+      // The count starts from the last day. The last day always has a label.
+      (stats.length - 1 - index) % labelStep === 0
+        ? dayLabel(stat, toX(index))
+        : '',
+    ),
     ...stats.map((stat, index) =>
       column('added', toX(index), barWidth, toY(0), toY(stat.added)),
     ),
