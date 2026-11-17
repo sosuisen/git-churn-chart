@@ -42,6 +42,19 @@ describe('buildSections', () => {
     expect(tests?.heading).toContain('.rs .swift .kt .cs');
   });
 
+  // テストの数のグラフは、行ではなく、増えたテストと減ったテストを数える
+  test('counts added and deleted tests, not lines, in the chart of the number of tests', () => {
+    const file = change(
+      'tests/app.rs',
+      ['#[test]', 'fn adds() {}', '#[test]', 'fn reads() {}'],
+      ['#[test]', 'fn old() {}'],
+    );
+
+    const stat = buildSections([file], '2026-11-18', 1)[2]?.stats[0];
+
+    expect([stat?.added, stat?.deleted]).toEqual([2, 1]);
+  });
+
   // コードでないファイルは、すべてのファイルにだけ入る
   test('counts a file that is not code only in all files', () => {
     expect(totals([change('README.md', ['a', 'b'], ['c'])])).toEqual({
