@@ -89,4 +89,26 @@ describe('countTests', () => {
 
     expect(countTests(file).added).toBe(3);
   });
+
+  // C#は、[Fact]・[Theory]・[Test]・[TestMethod]を数える
+  test('counts [Fact], [Theory], [Test], and [TestMethod] in C#', () => {
+    const file = change('App.Tests/ParserTests.cs', [
+      '[TestClass]',
+      'public class ParserTests {',
+      '    [Fact]',
+      '    public void ReadsALine() {}',
+      '    [Theory]',
+      '    [InlineData(1)]',
+      '    public void ReadsLines(int count) {}',
+      '    [Test]',
+      '    public void ReadsNothing() {}',
+      '    [TestMethod]',
+      '    public void ReadsAll() {}',
+      '    [Fact(Skip = "slow")]',
+      '    public void ReadsSlowly() {}',
+      '}',
+    ]);
+
+    expect(countTests(file).added).toBe(5);
+  });
 });
