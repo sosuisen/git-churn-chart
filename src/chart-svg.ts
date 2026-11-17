@@ -13,6 +13,8 @@ const MAX_BAR_WIDTH = 24;
 const MIN_DAY_LABEL_WIDTH = 40;
 const BAR_CORNER = 4;
 const MARKER_RADIUS = 4;
+// Markers that are closer than this overlap and hide the line.
+const MIN_MARKER_SPACING = 10;
 
 /**
  * Draws the chart as an SVG element.
@@ -54,7 +56,7 @@ export function renderChartSvg(stats: readonly DailyStat[]): string {
       column('deleted', toX(index), barWidth, toY(0), toY(-stat.deleted)),
     ),
     `<line class="baseline" x1="${MARGIN.left}" x2="${MARGIN.left + PLOT_WIDTH}" y1="${round(toY(0))}" y2="${round(toY(0))}"/>`,
-    cumulativeLine(stats, toX, toY),
+    cumulativeLine(stats, toX, toY, band >= MIN_MARKER_SPACING),
     ...stats.map((_, index) => hitTarget(index, toX(index), band)),
     '</svg>',
   ];
@@ -116,6 +118,7 @@ function cumulativeLine(
   stats: readonly DailyStat[],
   toX: (index: number) => number,
   toY: (value: number) => number,
+  withMarkers: boolean,
 ): string {
   const points = stats.map((stat, index) => ({
     x: round(toX(index)),
@@ -125,7 +128,7 @@ function cumulativeLine(
   const total = stats.at(-1)?.cumulative ?? 0;
   return [
     `<polyline class="line" points="${points.map(p => `${p.x},${p.y}`).join(' ')}"/>`,
-    ...points.map(
+    ...(withMarkers ? points : []).map(
       p =>
         `<circle class="marker" cx="${p.x}" cy="${p.y}" r="${MARKER_RADIUS}"/>`,
     ),
