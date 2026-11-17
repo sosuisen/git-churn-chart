@@ -84,6 +84,19 @@ describe('buildSections', () => {
     expect(all?.languages).toBeUndefined();
   });
 
+  // 言語の色の番号は、期間の中にある言語が変わっても同じである
+  test('keeps the color index of a language when the languages in the period change', () => {
+    const java = change('src/main/java/App.java', ['a']);
+    const rust = change('src/lib.rs', ['a']);
+    const colorOfJava = (changes: FileChange[]) =>
+      buildSections(changes, '2026-11-18', 1)[0]?.languages?.find(
+        line => line.name === 'Java',
+      )?.colorIndex;
+
+    expect(colorOfJava([java])).toBe(6);
+    expect(colorOfJava([rust, java])).toBe(6);
+  });
+
   // コードでないファイルは、すべてのファイルにだけ入る
   test('counts a file that is not code only in all files', () => {
     expect(totals([change('README.md', ['a', 'b'], ['c'])])).toEqual({
