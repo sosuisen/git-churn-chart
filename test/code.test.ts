@@ -8,6 +8,7 @@ describe('isCode', () => {
     expect(isCode('app/src/main.rs')).toBe(true);
     expect(isCode('app/App.swift')).toBe(true);
     expect(isCode('app/web/src/App.tsx')).toBe(true);
+    expect(isCode('server/src/main/java/App.java')).toBe(true);
   });
 
   // 拡張子の大文字と小文字は区別しない
