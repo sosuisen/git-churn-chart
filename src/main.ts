@@ -1,17 +1,19 @@
 import { writeFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { openInBrowser } from './browser.ts';
 import { addDays } from './daily-stats.ts';
 import { readPatchLog } from './git.ts';
 import { renderPage } from './page.ts';
 import { parsePatchLog } from './patch-log.ts';
 import { buildSections } from './sections.ts';
 
-const USAGE = `Usage: node src/main.ts [repository] [--days <number>] [--out <file>]
+const USAGE = `Usage: node src/main.ts [repository] [--days <number>] [--out <file>] [--open]
 
   repository  Path of a local Git repository. Default: current directory
   --days      Number of days to show, ending today. Default: 14
-  --out       Path of the HTML file to write. Default: churn-chart.html`;
+  --out       Path of the HTML file to write. Default: churn-chart.html
+  --open      Open the HTML file in the browser`;
 
 function main(): void {
   const { values, positionals } = parseArgs({
@@ -19,6 +21,7 @@ function main(): void {
     options: {
       days: { type: 'string', default: '14' },
       out: { type: 'string', default: 'churn-chart.html' },
+      open: { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
     },
   });
@@ -37,6 +40,9 @@ function main(): void {
   const outPath = resolve(values.out);
   writeFileSync(outPath, renderPage(basename(repoPath), sections));
   console.log(outPath);
+  if (values.open) {
+    openInBrowser(outPath);
+  }
 }
 
 function localDate(now: Date): string {
