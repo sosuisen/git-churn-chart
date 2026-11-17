@@ -92,6 +92,14 @@ describe('renderPage', () => {
     );
   });
 
+  // 選んだ期間のグラフだけを表示し、ほかの期間は隠す
+  test('shows only the view of the selected period and hides the others', () => {
+    const page = renderPage('my-repo', [week, month], 1);
+
+    expect(page).toContain('<div class="view" data-period="0" hidden>');
+    expect(page).toContain('<div class="view" data-period="1">');
+  });
+
   // リポジトリ名はエスケープして表示する
   test('escapes the repository name', () => {
     const page = renderPage('<script>', [week], 0);
