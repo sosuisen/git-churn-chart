@@ -58,7 +58,7 @@ describe('buildPeriods', () => {
     );
 
     expect(periods.map(period => allFiles(period).at(-1)?.cumulative)).toEqual([
-      1, 3, 7,
+      1, 3, 7, 7, 7, 7,
     ]);
   });
 });

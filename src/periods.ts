@@ -6,6 +6,9 @@ const PERIODS = [
   { days: 7, label: '1週間' },
   { days: 14, label: '2週間' },
   { days: 30, label: '1か月' },
+  { days: 90, label: '3か月' },
+  { days: 180, label: '6か月' },
+  { days: 365, label: '1年' },
 ] as const;
 
 /** Lengths of the periods in days, in the order of `buildPeriods`. */
