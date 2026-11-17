@@ -94,6 +94,17 @@ describe('renderPage', () => {
     expect(page).not.toContain('>11/17</text>');
   });
 
+  // 90日以上のグラフでは、累計の線に点を描かない。点が重なって、線が見えなくなるためである
+  test('draws no points on the cumulative line in a chart of 90 days', () => {
+    const longStats = buildDailyStats([], '2026-11-18', 90);
+    const long = { label: '3か月', sections: [{ ...all, stats: longStats }] };
+
+    const page = renderPage('my-repo', [long], 0);
+
+    expect(count(page, /class="marker"/g)).toBe(0);
+    expect(count(page, /class="line"/g)).toBe(1);
+  });
+
   // 期間ごとのボタンを、渡した順に並べる
   test('places a button for each period in the given order', () => {
     const page = renderPage('my-repo', [week, month], 0);
