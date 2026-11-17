@@ -8,6 +8,7 @@ const JS_TEST = /^(?:test|it)(?:\.\w+)*\(/;
 const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
   // `#[test]`, `#[tokio::test]`, `#[tokio::test(...)]`. Not `#[cfg(test)]`.
   rs: /^#\[(?:\w+::)*\w*test[\](]/,
+  kt: /^@(?:Test|ParameterizedTest)\b/,
   ts: JS_TEST,
   tsx: JS_TEST,
   js: JS_TEST,
