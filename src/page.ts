@@ -1,9 +1,11 @@
 import {
   type LanguageLine,
   renderChartSvg,
+  renderFileLinesSvg,
   renderLanguagesSvg,
 } from './chart-svg.ts';
 import type { DailyStat } from './daily-stats.ts';
+import type { DailyLines } from './file-lines.ts';
 import { escapeHtml, formatCount, formatSigned } from './format.ts';
 
 const MINUS = '−';
@@ -99,6 +101,7 @@ svg { display: block; width: 100%; height: auto; }
 .line.series-6 { stroke: var(--series-6); }
 .line.series-7 { stroke: var(--series-7); }
 .line.series-8 { stroke: var(--series-8); }
+.line.count { stroke: var(--series-1); }
 .marker { fill: var(--cumulative); stroke: var(--surface); stroke-width: 2; }
 .end-label { fill: var(--text-primary); font-size: 13px; font-weight: 600; }
 .hit { fill: var(--text-primary); fill-opacity: 0; outline: none; }
@@ -196,6 +199,19 @@ export interface Period {
   readonly label: string;
   /** Charts of the period. It must not be empty. All sections cover the same days. */
   readonly sections: readonly ChartSection[];
+  /**
+   * The number of lines of one file. When it is set, the last chart
+   * of the period draws it as a line. It covers the same days as the sections.
+   */
+  readonly tracked?: FileLines;
+}
+
+/** The number of lines of one file on each day of a period. */
+export interface FileLines {
+  /** Path of the file. It is shown in the heading. */
+  readonly path: string;
+  /** Days in date order. */
+  readonly days: readonly DailyLines[];
 }
 
 /**
@@ -260,13 +276,27 @@ function renderPeriod(
     throw new RangeError('sections must not be empty');
   }
   // renderChartSvg rejects empty stats. A second check here would be a duplicate.
-  const body = period.sections.map(renderSection).join('\n');
+  const body = [
+    ...period.sections.map(renderSection),
+    ...(period.tracked ? [renderTracked(period.tracked)] : []),
+  ].join('\n');
   const first = stats[0]?.date ?? '';
   const last = stats.at(-1)?.date ?? '';
   return `<div class="view" data-period="${index}"${isSelected ? '' : ' hidden'}>
 <p class="period">${first} 〜 ${last}（${stats.length}日間）</p>
 ${body}
 </div>`;
+}
+
+function renderTracked(tracked: FileLines): string {
+  const rows = tracked.days.map(day => ({
+    date: day.date,
+    values: [['行数', formatCount(day.lines)] as const],
+  }));
+  return `<section>
+<h2>${escapeHtml(tracked.path)} の行数</h2>
+${renderChart(renderFileLinesSvg(tracked.days), rows)}
+</section>`;
 }
 
 /** The values of one day. The tooltip and the table view both show them. */

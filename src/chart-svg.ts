@@ -1,5 +1,6 @@
 import type { DailyStat } from './daily-stats.ts';
-import { formatDay, formatSigned, formatTick } from './format.ts';
+import type { DailyLines } from './file-lines.ts';
+import { formatCount, formatDay, formatSigned, formatTick } from './format.ts';
 import { niceTicks } from './scale.ts';
 
 const WIDTH = 960;
@@ -84,6 +85,37 @@ export function renderLanguagesSvg(lines: readonly LanguageLine[]): string {
   ]);
 }
 
+/**
+ * Draws the number of lines of one file as a line. It has no columns.
+ * The end of the line shows the number of the last day.
+ *
+ * @param days Days in date order. It must not be empty.
+ */
+export function renderFileLinesSvg(days: readonly DailyLines[]): string {
+  if (days.length === 0) {
+    throw new RangeError('days must not be empty');
+  }
+  const counts = days.map(day => day.lines);
+  return frame('日ごとの、ファイルの行数', days, counts, ({ toX, toY }) => {
+    const points = counts.map((lines, index) => ({
+      x: round(toX(index)),
+      y: round(toY(lines)),
+    }));
+    const last = points.at(-1) ?? { x: 0, y: 0 };
+    return [
+      baseline(toY),
+      `<polyline class="line count" points="${points.map(p => `${p.x},${p.y}`).join(' ')}"/>`,
+      `<text class="end-label" x="${last.x + 12}" y="${last.y}" dy="0.32em">${formatCount(counts.at(-1) ?? 0)}行</text>`,
+    ];
+  });
+}
+
+/** One day of the x axis. */
+interface Day {
+  /** Date in `YYYY-MM-DD`. */
+  readonly date: string;
+}
+
 /** Turns a day and a value into a position in the plot. */
 interface Scale {
   /** Center of a day. `index` is the position of the day, from 0. */
@@ -104,7 +136,7 @@ interface Scale {
  */
 function frame(
   label: string,
-  days: readonly DailyStat[],
+  days: readonly Day[],
   values: readonly number[],
   drawMarks: (scale: Scale) => readonly string[],
 ): string {
@@ -154,8 +186,8 @@ function grid(
     .join('\n');
 }
 
-function dayLabel(stat: DailyStat, x: number): string {
-  return `<text class="tick" x="${round(x)}" y="${PLOT_BOTTOM + 20}" text-anchor="middle">${formatDay(stat.date)}</text>`;
+function dayLabel(day: Day, x: number): string {
+  return `<text class="tick" x="${round(x)}" y="${PLOT_BOTTOM + 20}" text-anchor="middle">${formatDay(day.date)}</text>`;
 }
 
 /** A column with a rounded data end and a square end at the baseline. */
