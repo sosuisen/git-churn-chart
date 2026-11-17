@@ -82,6 +82,18 @@ describe('renderPage', () => {
     );
   });
 
+  // 30日のグラフでは、横軸の日付を1日おきに書く。最後の日は必ず書く
+  test('writes the date of every second day in a chart of 30 days, with the last day', () => {
+    const longStats = buildDailyStats([], '2026-11-18', 30);
+    const long = { label: '1か月', sections: [{ ...all, stats: longStats }] };
+
+    const page = renderPage('my-repo', [long], 0);
+
+    expect(count(page, /text-anchor="middle"/g)).toBe(15);
+    expect(page).toContain('>11/18</text>');
+    expect(page).not.toContain('>11/17</text>');
+  });
+
   // 期間ごとのボタンを、渡した順に並べる
   test('places a button for each period in the given order', () => {
     const page = renderPage('my-repo', [week, month], 0);
