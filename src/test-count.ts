@@ -8,6 +8,8 @@ const JS_TEST = /^(?:test|it)(?:\.\w+)*\(/;
 const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
   // `#[test]`, `#[tokio::test]`, `#[tokio::test(...)]`. Not `#[cfg(test)]`.
   rs: /^#\[(?:\w+::)*\w*test[\](]/,
+  // XCTest names a test `func test...`. Swift Testing marks a test with `@Test`.
+  swift: /^(?:@Test\b|(?:\w+ )*func test\w*\()/,
   kt: /^@(?:Test|ParameterizedTest)\b/,
   ts: JS_TEST,
   tsx: JS_TEST,
