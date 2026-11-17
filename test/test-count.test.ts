@@ -74,4 +74,19 @@ describe('countTests', () => {
 
     expect(countTests(file).added).toBe(3);
   });
+
+  // Swiftは、func test...と@Testを数える
+  test('counts func test... and @Test in Swift', () => {
+    const file = change('AppTests/ParserTests.swift', [
+      'final class ParserTests: XCTestCase {',
+      '    func testReadsALine() throws {}',
+      '    func makeParser() -> Parser {}',
+      '}',
+      '@Test func readsTwoLines() {}',
+      '@Test("reads nothing")',
+      'func readsNothing() {}',
+    ]);
+
+    expect(countTests(file).added).toBe(3);
+  });
 });
