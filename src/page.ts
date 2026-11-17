@@ -50,7 +50,9 @@ main {
   border-radius: 8px;
 }
 h1 { margin: 0; font-size: 20px; }
-.period { margin: 4px 0 16px; color: var(--text-secondary); font-size: 14px; }
+.periods { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 16px; }
+.periods button { padding: 4px 12px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); font: inherit; font-size: 13px; cursor: pointer; }
+.period { margin: 0 0 16px; color: var(--text-secondary); font-size: 14px; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 0 0 20px; padding: 0; list-style: none; color: var(--text-secondary); font-size: 13px; }
 .legend li { display: flex; align-items: center; gap: 6px; }
 .swatch { width: 12px; height: 12px; border-radius: 2px; }
@@ -147,24 +149,22 @@ export interface Period {
 }
 
 /**
- * Builds a self-contained HTML page. Each section has a chart and a table view.
- * The sections are placed from top to bottom.
+ * Builds a self-contained HTML page. The page has one view for each period.
+ * Each view has a chart and a table view for each section, from top to bottom.
  *
  * @param repoName Name of the repository. It is shown in the title.
- * @param sections Charts to show. It must not be empty. All sections cover the same period.
+ * @param periods Periods to show. Each period gets a button that selects it.
+ * @param selected Index of the period that the page shows first.
  */
 export function renderPage(
   repoName: string,
-  sections: readonly ChartSection[],
+  periods: readonly Period[],
+  selected: number,
 ): string {
-  const stats = sections[0]?.stats;
-  if (stats === undefined) {
-    throw new RangeError('sections must not be empty');
-  }
-  // renderChartSvg rejects empty stats. A second check here would be a duplicate.
-  const body = sections.map(renderSection).join('\n');
-  const first = stats[0]?.date ?? '';
-  const last = stats.at(-1)?.date ?? '';
+  const buttons = periods.map(
+    (period, index) =>
+      `<button type="button" data-period="${index}">${escapeHtml(period.label)}</button>`,
+  );
   const title = `${escapeHtml(repoName)} のコード行数の変化`;
   return `<!doctype html>
 <html lang="ja">
@@ -177,18 +177,35 @@ export function renderPage(
 <body>
 <main>
 <h1>${title}</h1>
-<p class="period">${first} 〜 ${last}（${stats.length}日間）</p>
+<div class="periods" role="group" aria-label="期間">
+${buttons.join('\n')}
+</div>
 <ul class="legend">
 <li><span class="swatch" style="background: var(--added)"></span>追加した行</li>
 <li><span class="swatch" style="background: var(--deleted)"></span>削除した行</li>
 <li><span class="swatch line" style="background: var(--cumulative)"></span>純増の累計（追加 ${MINUS} 削除）</li>
 </ul>
-${body}
+${periods.map(renderPeriod).join('\n')}
 </main>
 <script>${SCRIPT}</script>
 </body>
 </html>
 `;
+}
+
+function renderPeriod(period: Period, index: number): string {
+  const stats = period.sections[0]?.stats;
+  if (stats === undefined) {
+    throw new RangeError('sections must not be empty');
+  }
+  // renderChartSvg rejects empty stats. A second check here would be a duplicate.
+  const body = period.sections.map(renderSection).join('\n');
+  const first = stats[0]?.date ?? '';
+  const last = stats.at(-1)?.date ?? '';
+  return `<div class="view" data-period="${index}">
+<p class="period">${first} 〜 ${last}（${stats.length}日間）</p>
+${body}
+</div>`;
 }
 
 function renderSection(section: ChartSection): string {
