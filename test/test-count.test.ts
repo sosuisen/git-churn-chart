@@ -75,6 +75,23 @@ describe('countTests', () => {
     expect(countTests(file).added).toBe(3);
   });
 
+  // Javaは、@Testと@ParameterizedTestを数える
+  test('counts @Test and @ParameterizedTest in Java', () => {
+    const file = change('src/test/java/ParserTest.java', [
+      'class ParserTest {',
+      '    @Test',
+      '    void readsALine() {}',
+      '    @ParameterizedTest',
+      '    @ValueSource(ints = {1, 2})',
+      '    void readsLines(int count) {}',
+      '    @BeforeEach',
+      '    void setUp() {}',
+      '}',
+    ]);
+
+    expect(countTests(file).added).toBe(2);
+  });
+
   // Swiftは、func test...と@Testを数える
   test('counts func test... and @Test in Swift', () => {
     const file = change('AppTests/ParserTests.swift', [
