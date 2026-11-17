@@ -75,6 +75,37 @@ describe('countTests', () => {
     expect(countTests(file).added).toBe(3);
   });
 
+  // Javaは、@Testと@ParameterizedTestを数える
+  test('counts @Test and @ParameterizedTest in Java', () => {
+    const file = change('src/test/java/ParserTest.java', [
+      'class ParserTest {',
+      '    @Test',
+      '    void readsALine() {}',
+      '    @ParameterizedTest',
+      '    @ValueSource(ints = {1, 2})',
+      '    void readsLines(int count) {}',
+      '    @BeforeEach',
+      '    void setUp() {}',
+      '}',
+    ]);
+
+    expect(countTests(file).added).toBe(2);
+  });
+
+  // C++は、TEST(・TEST_F(・TEST_P(・TEST_CASE(を数える
+  test('counts TEST(, TEST_F(, TEST_P(, and TEST_CASE( in C++', () => {
+    const file = change('tests/parser_test.cpp', [
+      'TEST(Parser, ReadsALine) {}',
+      'TEST_F(ParserFixture, ReadsTwoLines) {}',
+      'TEST_P(ParserCases, ReadsLines) {}',
+      'TEST_CASE("reads nothing") {}',
+      'INSTANTIATE_TEST_SUITE_P(Lines, ParserCases, testing::Values(1, 2));',
+      '  EXPECT_EQ(1, 1);',
+    ]);
+
+    expect(countTests(file).added).toBe(4);
+  });
+
   // Swiftは、func test...と@Testを数える
   test('counts func test... and @Test in Swift', () => {
     const file = change('AppTests/ParserTests.swift', [

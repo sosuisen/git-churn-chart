@@ -16,6 +16,19 @@ const MARKER_RADIUS = 4;
 // Markers that are closer than this overlap and hide the line.
 const MIN_MARKER_SPACING = 10;
 
+/** The changes of one language. A chart of languages draws it as one line. */
+export interface LanguageLine {
+  /** Name of the language. */
+  readonly name: string;
+  /**
+   * Position of the language in the fixed list of languages, from 0.
+   * It selects the color. So a language keeps its color in every chart.
+   */
+  readonly colorIndex: number;
+  /** Days in date order. */
+  readonly stats: readonly DailyStat[];
+}
+
 /**
  * Draws the chart as an SVG element.
  * Added lines are columns above zero. Deleted lines are columns below zero.
@@ -27,40 +40,102 @@ export function renderChartSvg(stats: readonly DailyStat[]): string {
   if (stats.length === 0) {
     throw new RangeError('stats must not be empty');
   }
-  const ticks = niceTicks(
-    Math.min(0, ...stats.map(s => -s.deleted), ...stats.map(s => s.cumulative)),
-    Math.max(0, ...stats.map(s => s.added), ...stats.map(s => s.cumulative)),
+  const values = stats.flatMap(s => [s.added, -s.deleted, s.cumulative]);
+  return frame(
+    '日ごとの追加・削除と、純増の累計',
+    stats,
+    values,
+    ({ toX, toY, band }) => {
+      const barWidth = Math.min(MAX_BAR_WIDTH, band / 2);
+      return [
+        ...stats.map((stat, index) =>
+          column('added', toX(index), barWidth, toY(0), toY(stat.added)),
+        ),
+        ...stats.map((stat, index) =>
+          column('deleted', toX(index), barWidth, toY(0), toY(-stat.deleted)),
+        ),
+        baseline(toY),
+        cumulativeLine(stats, toX, toY, band >= MIN_MARKER_SPACING),
+      ];
+    },
   );
+}
+
+/**
+ * Draws the cumulative net change of each language as a line.
+ * It has no columns. All lines share one y axis.
+ *
+ * @param lines Languages to draw. It must not be empty. Every language covers the same days.
+ */
+export function renderLanguagesSvg(lines: readonly LanguageLine[]): string {
+  const days = lines[0]?.stats ?? [];
+  if (days.length === 0) {
+    throw new RangeError('lines must have at least one language with days');
+  }
+  const totals = lines.flatMap(line => line.stats.map(s => s.cumulative));
+  return frame('言語ごとの、純増の累計', days, totals, ({ toX, toY }) => [
+    baseline(toY),
+    ...lines.map(line => {
+      const points = line.stats.map(
+        (stat, index) => `${round(toX(index))},${round(toY(stat.cumulative))}`,
+      );
+      return `<polyline class="line series-${line.colorIndex + 1}" points="${points.join(' ')}"/>`;
+    }),
+  ]);
+}
+
+/** Turns a day and a value into a position in the plot. */
+interface Scale {
+  /** Center of a day. `index` is the position of the day, from 0. */
+  readonly toX: (index: number) => number;
+  readonly toY: (value: number) => number;
+  /** Width of one day. */
+  readonly band: number;
+}
+
+/**
+ * Draws the parts that every chart has around its marks:
+ * the grid, the dates, and the targets for hover.
+ *
+ * @param label Text that a screen reader says for the chart.
+ * @param days Days of the x axis in date order. It must not be empty.
+ * @param values Values that the y axis must cover. Zero is always covered.
+ * @param drawMarks Draws the marks of the chart with the scale of the frame.
+ */
+function frame(
+  label: string,
+  days: readonly DailyStat[],
+  values: readonly number[],
+  drawMarks: (scale: Scale) => readonly string[],
+): string {
+  const ticks = niceTicks(Math.min(0, ...values), Math.max(0, ...values));
   const low = ticks[0] ?? 0;
   const high = ticks.at(-1) ?? 1;
   const toY = (value: number) =>
     PLOT_BOTTOM - ((value - low) / (high - low)) * PLOT_HEIGHT;
-  const band = PLOT_WIDTH / stats.length;
+  const band = PLOT_WIDTH / days.length;
   const toX = (index: number) => MARGIN.left + band * (index + 0.5);
-  const barWidth = Math.min(MAX_BAR_WIDTH, band / 2);
   const labelStep = Math.ceil(MIN_DAY_LABEL_WIDTH / band);
 
   const parts = [
-    `<svg viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="日ごとの追加・削除と、純増の累計">`,
+    `<svg viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="${label}">`,
     grid(ticks, toY),
-    ...stats.map((stat, index) =>
+    ...days.map((day, index) =>
       // The count starts from the last day. The last day always has a label.
-      (stats.length - 1 - index) % labelStep === 0
-        ? dayLabel(stat, toX(index))
+      (days.length - 1 - index) % labelStep === 0
+        ? dayLabel(day, toX(index))
         : '',
     ),
-    ...stats.map((stat, index) =>
-      column('added', toX(index), barWidth, toY(0), toY(stat.added)),
-    ),
-    ...stats.map((stat, index) =>
-      column('deleted', toX(index), barWidth, toY(0), toY(-stat.deleted)),
-    ),
-    `<line class="baseline" x1="${MARGIN.left}" x2="${MARGIN.left + PLOT_WIDTH}" y1="${round(toY(0))}" y2="${round(toY(0))}"/>`,
-    cumulativeLine(stats, toX, toY, band >= MIN_MARKER_SPACING),
-    ...stats.map((_, index) => hitTarget(index, toX(index), band)),
+    ...drawMarks({ toX, toY, band }),
+    ...days.map((_, index) => hitTarget(index, toX(index), band)),
     '</svg>',
   ];
   return parts.filter(part => part !== '').join('\n');
+}
+
+function baseline(toY: (value: number) => number): string {
+  const y = round(toY(0));
+  return `<line class="baseline" x1="${MARGIN.left}" x2="${MARGIN.left + PLOT_WIDTH}" y1="${y}" y2="${y}"/>`;
 }
 
 function grid(

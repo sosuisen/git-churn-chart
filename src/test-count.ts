@@ -4,13 +4,20 @@ import type { FileChange } from './patch-log.ts';
 /** `test(`, `it(`, and their variants such as `test.each(` and `it.skip(`. */
 const JS_TEST = /^(?:test|it)(?:\.\w+)*\(/;
 
+/** `@Test` and `@ParameterizedTest` of JUnit. */
+const JUNIT_TEST = /^@(?:Test|ParameterizedTest)\b/;
+
+/** `TEST(`, `TEST_F(`, `TEST_P(` of GoogleTest, and `TEST_CASE(` of Catch2 and doctest. */
+const CPP_TEST = /^(?:TEST|TEST_F|TEST_P|TEST_CASE)\(/;
+
 /** Pattern of a line that declares one test, by the extension of the file. */
 const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
   // `#[test]`, `#[tokio::test]`, `#[tokio::test(...)]`. Not `#[cfg(test)]`.
   rs: /^#\[(?:\w+::)*\w*test[\](]/,
   // XCTest names a test `func test...`. Swift Testing marks a test with `@Test`.
   swift: /^(?:@Test\b|(?:\w+ )*func test\w*\()/,
-  kt: /^@(?:Test|ParameterizedTest)\b/,
+  kt: JUNIT_TEST,
+  java: JUNIT_TEST,
   // xUnit, NUnit, and MSTest. `[TestClass]` and `[TestCase]` are not tests.
   cs: /^\[(?:Fact|Theory|Test|TestMethod)\b/,
   el: /^\(ert-deftest\b/,
@@ -20,6 +27,9 @@ const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
   jsx: JS_TEST,
   mjs: JS_TEST,
   cjs: JS_TEST,
+  cpp: CPP_TEST,
+  cc: CPP_TEST,
+  cxx: CPP_TEST,
 };
 
 /**
