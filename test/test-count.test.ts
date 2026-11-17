@@ -111,4 +111,24 @@ describe('countTests', () => {
 
     expect(countTests(file).added).toBe(5);
   });
+
+  // Emacs Lispは、(ert-deftestを数える
+  test('counts (ert-deftest in Emacs Lisp', () => {
+    const file = change('test/parser-test.el', [
+      '(ert-deftest parser-reads-a-line ()',
+      '  (should (parser-read "a")))',
+      '(defun parser-test-helper ())',
+    ]);
+
+    expect(countTests(file).added).toBe(1);
+  });
+
+  // コードでないファイルと、ほかの言語の宣言は数えない
+  test('does not count a file that is not code or a declaration of another language', () => {
+    const lines = ['#[test]', "test('reads a line', () => {});", '@Test'];
+
+    expect(countTests(change('docs/testing.md', lines)).added).toBe(0);
+    expect(countTests(change('Makefile', lines)).added).toBe(0);
+    expect(countTests(change('src/lib.rs', lines)).added).toBe(1);
+  });
 });
