@@ -31,6 +31,18 @@ const byLanguage = {
     },
   ],
 };
+const withTracked = {
+  label: '1週間',
+  sections: [{ heading: 'コード本体', stats: noChanges }],
+  tracked: {
+    path: 'docs/plans.md',
+    days: [
+      { date: '2026-11-16', lines: 12 },
+      { date: '2026-11-17', lines: 1500 },
+      { date: '2026-11-18', lines: 8 },
+    ],
+  },
+};
 const week = { label: '1週間', sections: [all] };
 const both = { label: '2週間', sections: [all, code] };
 const month = { label: '1か月', sections: [code] };
@@ -155,6 +167,18 @@ describe('renderPage', () => {
     };
 
     expect(count(renderPage('my-repo', [empty], 0), /<svg /g)).toBe(1);
+  });
+
+  // 行数を持つ期間は、いちばん下に、そのファイルの行数の線だけのグラフを描く。棒は描かない
+  test('draws a last chart with only the line of the lines of the tracked file', () => {
+    const page = renderPage('my-repo', [withTracked], 0);
+
+    expect(count(page, /<svg /g)).toBe(2);
+    expect(count(page, /class="line count"/g)).toBe(1);
+    expect(count(page, /class="bar /g)).toBe(0);
+    expect(page.indexOf('<h2>docs/plans.md の行数</h2>')).toBeGreaterThan(
+      page.indexOf('<h2>コード本体</h2>'),
+    );
   });
 
   // 期間ごとのボタンを、渡した順に並べる
