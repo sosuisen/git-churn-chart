@@ -10,6 +10,9 @@ describe('languageOf', () => {
     expect(languageOf('app/src/App.tsx')).toBe('TypeScript・JavaScript');
     expect(languageOf('app/tools/build.MJS')).toBe('TypeScript・JavaScript');
     expect(languageOf('app/MainWindow.xaml')).toBe('C#・XAML');
+    expect(languageOf('engine/src/parser.cpp')).toBe('C++');
+    expect(languageOf('engine/include/parser.hpp')).toBe('C++');
+    expect(languageOf('engine/include/parser.h')).toBe('C++');
   });
 
   // コードでないファイルに、言語はない
