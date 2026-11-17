@@ -39,4 +39,20 @@ describe('buildPeriods', () => {
       { days: 30, first: '2026-10-20', last: '2026-11-18' },
     ]);
   });
+
+  // 累計は、期間ごとに、その期間の最初の日から数える
+  test('counts the cumulative lines from the first day of each period', () => {
+    const periods = buildPeriods(
+      [
+        change('2026-10-20', ['a', 'b', 'c', 'd']),
+        change('2026-11-05', ['a', 'b']),
+        change('2026-11-18', ['a']),
+      ],
+      '2026-11-18',
+    );
+
+    expect(periods.map(period => allFiles(period).at(-1)?.cumulative)).toEqual([
+      1, 3, 7,
+    ]);
+  });
 });
