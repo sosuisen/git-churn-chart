@@ -17,6 +17,20 @@ const codeStats = buildDailyStats(
 );
 const all = { heading: 'すべてのファイル', stats };
 const code = { heading: 'コードのみ', stats: codeStats };
+const noChanges = buildDailyStats([], '2026-11-18', 3);
+const byLanguage = {
+  label: '1週間',
+  sections: [
+    {
+      heading: 'コード本体',
+      stats: noChanges,
+      languages: [
+        { name: 'Rust', colorIndex: 0, stats },
+        { name: 'Java', colorIndex: 6, stats: codeStats },
+      ],
+    },
+  ],
+};
 const week = { label: '1週間', sections: [all] };
 const both = { label: '2週間', sections: [all, code] };
 const month = { label: '1か月', sections: [code] };
@@ -103,6 +117,16 @@ describe('renderPage', () => {
 
     expect(count(page, /class="marker"/g)).toBe(0);
     expect(count(page, /class="line"/g)).toBe(1);
+  });
+
+  // 言語を持つセクションは、グラフの下に、言語ごとに1本の線のグラフを描く。棒は描かない
+  test('draws a second chart with one line for each language and no bars below the chart', () => {
+    const page = renderPage('my-repo', [byLanguage], 0);
+
+    expect(count(page, /<svg /g)).toBe(2);
+    expect(count(page, /class="line series-1"/g)).toBe(1);
+    expect(count(page, /class="line series-7"/g)).toBe(1);
+    expect(count(page, /class="bar /g)).toBe(0);
   });
 
   // 期間ごとのボタンを、渡した順に並べる
