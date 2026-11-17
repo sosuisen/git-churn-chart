@@ -13,6 +13,7 @@ const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
   kt: /^@(?:Test|ParameterizedTest)\b/,
   // xUnit, NUnit, and MSTest. `[TestClass]` and `[TestCase]` are not tests.
   cs: /^\[(?:Fact|Theory|Test|TestMethod)\b/,
+  el: /^\(ert-deftest\b/,
   ts: JS_TEST,
   tsx: JS_TEST,
   js: JS_TEST,
