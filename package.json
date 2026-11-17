@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node src/main.ts",
+    "dev": "node src/main.ts --open",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "coverage": "vitest run --coverage",

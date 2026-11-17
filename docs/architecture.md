@@ -38,7 +38,7 @@ main → page → chart-svg → scale, format
               page → format
 ```
 
-- 外部に触るのは、`git.ts`と`main.ts`だけである。ほかは、ファイルもGitも触らない計算である。
+- 外部に触るのは、`git.ts`、`browser.ts`、`main.ts`だけである。ほかは、ファイルもGitも触らない計算である。
 
 ## コード本体とテストの分け方
 
@@ -60,6 +60,7 @@ Rustの行単位の切り分けは、ファイル全体を読まない。変更�
 - Git: `git -C <repo> log --since=<開始日> --patch --unified=0 --date=format-local:%Y-%m-%d --pretty=format:@@@commit %cd`を実行し、標準出力を読む。
   - `core.quotePath=false`を付ける。日本語などのパスを、そのまま受け取るためである。
   - `diff.rust.xfuncname`を上書きする。リポジトリがRust用の見出しを有効にしていても、行頭から始まる行を見出しにするためである。
+- ブラウザ: `--open`が付いていれば、OSのコマンド（Windowsは`start`、macOSは`open`、ほかは`xdg-open`）でHTMLを開く。`browser.ts`の`openInBrowser`が行う。
 - ファイル: HTMLを1つ書き出す。場所は`--out`で決まる。
 - 出力するHTMLは、外部のファイルを読み込まない。CSS・SVG・スクリプトをすべて中に持つ。
 
@@ -70,7 +71,7 @@ Rustの行単位の切り分けは、ファイル全体を読まない。変更�
 3. `parsePatchLog`が、ログをファイルごとの変更行にする。
 4. `buildSections`が、ファイルごとに`countByCategory`で行を分け、3つのグラフのデータを作る。その中で`buildDailyStats`が、日ごとに合計し、変更のない日を0で埋め、累計を計算する。
 5. `renderPage`が、3つのセクションを上下に並べたHTMLを作る。セクションごとに`renderChartSvg`がグラフを描く。
-6. `main`がHTMLを書き出し、そのパスを表示する。
+6. `main`がHTMLを書き出し、そのパスを表示する。`--open`が付いていれば、`openInBrowser`がHTMLを既定のブラウザで開く。
 
 ## 関連する文書
 
