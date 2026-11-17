@@ -97,7 +97,8 @@ function column(
   }
   const left = round(centerX - width / 2);
   const right = round(centerX + width / 2);
-  const corner = Math.min(BAR_CORNER, length);
+  // A corner larger than half the width would make the two curves cross.
+  const corner = Math.min(BAR_CORNER, length, width / 2);
   // The corner bends back toward the baseline. Its direction depends on the side.
   const inward = endY < baselineY ? corner : -corner;
   const base = round(baselineY);
@@ -105,8 +106,8 @@ function column(
   const path = [
     `M${left},${base}`,
     `V${round(endY + inward)}`,
-    `Q${left},${end} ${left + corner},${end}`,
-    `H${right - corner}`,
+    `Q${left},${end} ${round(left + corner)},${end}`,
+    `H${round(right - corner)}`,
     `Q${right},${end} ${right},${round(endY + inward)}`,
     `V${base}`,
     'Z',
