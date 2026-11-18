@@ -16,6 +16,8 @@ const HEIGHT = 420;
 const MARGIN = { top: 24, right: 176, bottom: 40, left: 64 };
 // Space between the end of a line and its label.
 const END_LABEL_GAP = 12;
+// Labels of languages that are closer than this overlap.
+const MIN_LABEL_SPACING = 16;
 const PLOT_WIDTH = WIDTH - MARGIN.left - MARGIN.right;
 const PLOT_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
 const PLOT_BOTTOM = MARGIN.top + PLOT_HEIGHT;
@@ -95,12 +97,59 @@ export function renderLanguagesSvg(lines: readonly LanguageLine[]): string {
         );
         return `<polyline class="line series-${line.colorIndex + 1}" points="${points.join(' ')}"/>`;
       }),
-      ...lines.map(line => {
-        const y = round(toY(line.stats.at(-1)?.cumulative ?? 0));
-        return `<text class="series-label series-${line.colorIndex + 1}" x="${labelX}" y="${y}" dy="0.32em">${escapeHtml(line.name)}</text>`;
-      }),
+      ...spread(lines.map(line => toY(line.stats.at(-1)?.cumulative ?? 0))).map(
+        (y, index) => {
+          const line = lines[index];
+          return line === undefined
+            ? ''
+            : `<text class="series-label series-${line.colorIndex + 1}" x="${labelX}" y="${round(y)}" dy="0.32em">${escapeHtml(line.name)}</text>`;
+        },
+      ),
     ];
   });
+}
+
+/**
+ * Moves the labels apart, so that they do not overlap.
+ * The labels keep their order from top to bottom. Labels at the same height keep the given order.
+ * A label that has room stays at its height.
+ *
+ * @param heights The y position that each label wants.
+ * @returns The y position of each label, in the given order.
+ */
+function spread(heights: readonly number[]): number[] {
+  const order = heights
+    .map((y, index) => ({ y, index }))
+    .sort((a, b) => a.y - b.y || a.index - b.index);
+  const wanted = order.map(item => item.y);
+  // One pass pushes the labels down. The other pass pushes them up.
+  // The middle of the two keeps a group of labels around its lines.
+  const down = pushApart(wanted, 1);
+  const up = pushApart(wanted.toReversed(), -1).reverse();
+  const middle = down.map((y, position) => (y + (up[position] ?? y)) / 2);
+  const result: number[] = [];
+  middle.forEach((y, position) => {
+    result[order[position]?.index ?? position] = y;
+  });
+  return result;
+}
+
+/**
+ * @param heights Positions in the order of the pass.
+ * @param direction `1` when the pass goes down, `-1` when it goes up.
+ */
+function pushApart(heights: readonly number[], direction: 1 | -1): number[] {
+  const result: number[] = [];
+  for (const y of heights) {
+    const previous = result.at(-1);
+    result.push(
+      previous === undefined
+        ? y
+        : direction *
+            Math.max(direction * y, direction * previous + MIN_LABEL_SPACING),
+    );
+  }
+  return result;
 }
 
 /**
