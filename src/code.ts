@@ -47,6 +47,13 @@ const ANYWHERE_EXTENSIONS: ReadonlySet<string> = new Set([
   'el',
 ]);
 
+/**
+ * Names of the directories whose files do not count as code.
+ * `vendor` holds code from other projects.
+ * `proto` holds code that a tool generates from Protocol Buffers.
+ */
+const IGNORED_DIRECTORIES: ReadonlySet<string> = new Set(['vendor', 'proto']);
+
 const LANGUAGE_BY_EXTENSION = new Map<string, string>(
   LANGUAGE_EXTENSIONS.flatMap(({ name, extensions }) =>
     extensions.map(extension => [extension, name]),
@@ -63,8 +70,11 @@ const LANGUAGE_BY_EXTENSION = new Map<string, string>(
 export function languageOf(path: string): string | undefined {
   const directories = path.split('/');
   const file = (directories.pop() ?? '').toLowerCase();
-  // A minified file is not written by a person. A vendor directory holds code from other projects.
-  if (file.endsWith('.min.js') || directories.includes('vendor')) {
+  // A minified file is not written by a person.
+  if (
+    file.endsWith('.min.js') ||
+    directories.some(name => IGNORED_DIRECTORIES.has(name))
+  ) {
     return undefined;
   }
   const dot = file.lastIndexOf('.');
