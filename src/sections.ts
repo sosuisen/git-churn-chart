@@ -52,20 +52,24 @@ export function buildSections(
   }));
   return [
     {
+      tab: 'コード',
       heading: `コード本体（${extensions}。テストを除く）`,
       stats: buildDailyStats(code, endDate, days),
       languages: buildLanguageLines(code, endDate, days),
     },
     {
+      tab: 'テスト',
       heading: `テストコード（${extensions}）`,
       stats: buildDailyStats(test, endDate, days),
       languages: buildLanguageLines(test, endDate, days),
     },
     {
+      tab: 'テスト',
       heading: 'テストの数（テストの宣言を数えた推定）',
       stats: buildDailyStats(testCount, endDate, days),
     },
     {
+      tab: '全体',
       heading: 'すべてのファイル',
       stats: buildDailyStats(all, endDate, days),
     },

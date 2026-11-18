@@ -191,6 +191,11 @@ for (const button of buttons) {
 
 /** One chart of the page with its heading. */
 export interface ChartSection {
+  /**
+   * Name of the tab that shows the chart. The page shows one tab at a time.
+   * The tabs are in the order of their first chart.
+   */
+  readonly tab: string;
   readonly heading: string;
   /** Days in date order. It must not be empty. */
   readonly stats: readonly DailyStat[];

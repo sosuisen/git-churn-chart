@@ -15,13 +15,14 @@ const codeStats = buildDailyStats(
   '2026-11-18',
   3,
 );
-const all = { heading: 'すべてのファイル', stats };
-const code = { heading: 'コードのみ', stats: codeStats };
+const all = { tab: '全体', heading: 'すべてのファイル', stats };
+const code = { tab: '全体', heading: 'コードのみ', stats: codeStats };
 const noChanges = buildDailyStats([], '2026-11-18', 3);
 const byLanguage = {
   label: '1週間',
   sections: [
     {
+      tab: '全体',
       heading: 'コード本体',
       stats: noChanges,
       languages: [
@@ -33,7 +34,7 @@ const byLanguage = {
 };
 const withTracked = {
   label: '1週間',
-  sections: [{ heading: 'コード本体', stats: noChanges }],
+  sections: [{ tab: '全体', heading: 'コード本体', stats: noChanges }],
   tracked: {
     path: 'docs/plans.md',
     days: [
@@ -163,7 +164,9 @@ describe('renderPage', () => {
   test('shows no language chart when no language has changes', () => {
     const empty = {
       label: '1週間',
-      sections: [{ heading: 'コード本体', stats: noChanges, languages: [] }],
+      sections: [
+        { tab: '全体', heading: 'コード本体', stats: noChanges, languages: [] },
+      ],
     };
 
     expect(count(renderPage('my-repo', [empty], 0), /<svg /g)).toBe(1);
@@ -245,7 +248,10 @@ describe('renderPage', () => {
 
   // セクションに日が1つもないとき、例外を投げる
   test('throws when a section has no days', () => {
-    const noDays = { label: '1週間', sections: [{ heading: 'x', stats: [] }] };
+    const noDays = {
+      label: '1週間',
+      sections: [{ tab: '全体', heading: 'x', stats: [] }],
+    };
 
     expect(() => renderPage('my-repo', [noDays], 0)).toThrow(RangeError);
   });
