@@ -28,6 +28,15 @@ describe('languageOf', () => {
     expect(languageOf('app/src/lib/admin.js')).toBe('TypeScript・JavaScript');
   });
 
+  // vendorというディレクトリの中のファイルは、コードではない。よそから持ってきたコードのためである
+  test('names no language for a file in a directory named vendor', () => {
+    expect(languageOf('vendor/src/tweedle.js')).toBeUndefined();
+    expect(languageOf('app/src/vendor/lib/tweedle.js')).toBeUndefined();
+    expect(languageOf('app/src/vendors/tweedle.js')).toBe(
+      'TypeScript・JavaScript',
+    );
+  });
+
   // コードでないファイルに、言語はない
   test('names no language for a file that is not code', () => {
     expect(languageOf('README.md')).toBeUndefined();
