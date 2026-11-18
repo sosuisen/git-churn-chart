@@ -48,7 +48,8 @@ const ANYWHERE_EXTENSIONS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Names of the directories whose files do not count as code.
+ * Names of the directories whose files do not count as code, in lower case.
+ * The case of a name does not matter. Xcode projects often use `Proto`.
  * `vendor` holds code from other projects.
  * `proto` holds code that a tool generates from Protocol Buffers.
  */
@@ -73,7 +74,7 @@ export function languageOf(path: string): string | undefined {
   // A minified file is not written by a person.
   if (
     file.endsWith('.min.js') ||
-    directories.some(name => IGNORED_DIRECTORIES.has(name))
+    directories.some(name => IGNORED_DIRECTORIES.has(name.toLowerCase()))
   ) {
     return undefined;
   }
