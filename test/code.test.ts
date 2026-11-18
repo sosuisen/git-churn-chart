@@ -71,6 +71,13 @@ describe('languageOf', () => {
     expect(languageOf('app/src/protocol/journal.rs')).toBe('Rust');
   });
 
+  // protoとvendorのディレクトリの名前は、大文字と小文字を区別しない
+  test('ignores the case of the names of the proto and vendor directories', () => {
+    expect(languageOf('App/Proto/Journal.pb.swift')).toBeUndefined();
+    expect(languageOf('app/src/PROTO/journal.rs')).toBeUndefined();
+    expect(languageOf('app/src/Vendor/tweedle.js')).toBeUndefined();
+  });
+
   // コードでないファイルに、言語はない
   test('names no language for a file that is not code', () => {
     expect(languageOf('README.md')).toBeUndefined();
