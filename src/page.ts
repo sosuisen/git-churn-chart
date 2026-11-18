@@ -72,6 +72,9 @@ main {
   border-radius: 8px;
 }
 h1 { margin: 0; font-size: 20px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 0; border-bottom: 1px solid var(--border); }
+.tabs button { padding: 8px 16px; margin-bottom: -1px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--text-secondary); font: inherit; font-size: 14px; cursor: pointer; }
+.tabs button[aria-pressed="true"] { border-bottom-color: var(--text-primary); color: var(--text-primary); font-weight: 600; }
 .periods { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 16px; }
 .periods button { padding: 4px 12px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); font: inherit; font-size: 13px; cursor: pointer; }
 .periods button[aria-pressed="true"] { background: var(--text-primary); border-color: var(--text-primary); color: var(--surface); }
@@ -187,10 +190,28 @@ for (const button of buttons) {
     }
   });
 }
+const tabButtons = document.querySelectorAll('.tabs button');
+const sections = document.querySelectorAll('section[data-tab]');
+for (const button of tabButtons) {
+  button.addEventListener('click', () => {
+    for (const other of tabButtons) {
+      other.setAttribute('aria-pressed', String(other === button));
+    }
+    // The sections of every period change. So the tab stays when the period changes.
+    for (const section of sections) {
+      section.hidden = section.dataset.tab !== button.dataset.tab;
+    }
+  });
+}
 `;
 
 /** One chart of the page with its heading. */
 export interface ChartSection {
+  /**
+   * Name of the tab that shows the chart. The page shows one tab at a time.
+   * The tabs are in the order of their first chart.
+   */
+  readonly tab: string;
   readonly heading: string;
   /** Days in date order. It must not be empty. */
   readonly stats: readonly DailyStat[];
@@ -247,10 +268,25 @@ export function renderPage(
     (period, index) =>
       `<button type="button" data-period="${index}" aria-pressed="${index === selected}">${escapeHtml(period.label)}</button>`,
   );
-  const views = periods.map((period, index) =>
-    renderPeriod(period, index, index === selected),
-  );
   const tracked = periods[selected]?.tracked;
+  // A page for a tracked file has one chart. It needs no tabs.
+  const tabs = tracked
+    ? []
+    : [...new Set(periods[selected]?.sections.map(section => section.tab))];
+  const tabButtons = tabs.map(
+    (tab, index) =>
+      `<button type="button" data-tab="${index}" aria-pressed="${index === 0}">${escapeHtml(tab)}</button>`,
+  );
+  const tabBar =
+    tabs.length === 0
+      ? ''
+      : `<div class="tabs" role="group" aria-label="グラフの種類">
+${tabButtons.join('\n')}
+</div>
+`;
+  const views = periods.map((period, index) =>
+    renderPeriod(period, index, index === selected, tabs),
+  );
   const title = tracked
     ? `${escapeHtml(repoName)} の ${escapeHtml(tracked.path)} の行数`
     : `${escapeHtml(repoName)} のコード行数の変化`;
@@ -274,7 +310,7 @@ export function renderPage(
 <body>
 <main>
 <h1>${title}</h1>
-<div class="periods" role="group" aria-label="期間">
+${tabBar}<div class="periods" role="group" aria-label="期間">
 ${buttons.join('\n')}
 </div>
 ${legend}${views.join('\n')}
@@ -289,6 +325,7 @@ function renderPeriod(
   period: Period,
   index: number,
   isSelected: boolean,
+  tabs: readonly string[],
 ): string {
   const days = period.tracked?.days ?? period.sections[0]?.stats;
   if (days === undefined) {
@@ -297,7 +334,7 @@ function renderPeriod(
   // The chart functions reject empty days. A second check here would be a duplicate.
   const body = period.tracked
     ? renderTracked(period.tracked)
-    : period.sections.map(renderSection).join('\n');
+    : period.sections.map(section => renderSection(section, tabs)).join('\n');
   const first = days[0]?.date ?? '';
   const last = days.at(-1)?.date ?? '';
   return `<div class="view" data-period="${index}"${isSelected ? '' : ' hidden'}>
@@ -323,9 +360,11 @@ interface Row {
   readonly values: readonly (readonly [label: string, value: string])[];
 }
 
-function renderSection(section: ChartSection): string {
+/** @param tabs Names of the tabs of the page. The first tab is the one that the page shows first. */
+function renderSection(section: ChartSection, tabs: readonly string[]): string {
   const languages = section.languages ?? [];
-  return `<section>
+  const tab = tabs.indexOf(section.tab);
+  return `<section data-tab="${tab}"${tab === 0 ? '' : ' hidden'}>
 <h2>${escapeHtml(section.heading)}</h2>
 ${renderChart(renderChartSvg(section.stats), section.stats.map(toRow))}
 ${languages.length === 0 ? '' : renderLanguages(languages)}

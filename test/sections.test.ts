@@ -35,6 +35,13 @@ describe('buildSections', () => {
     expect(headings[3]).toBe('すべてのファイル');
   });
 
+  // グラフは、コード・テスト・全体の3つのタブに分かれる。テストコードとテストの数は、同じテストのタブに入る
+  test('puts the charts in the tabs of code, tests, and all', () => {
+    const tabs = buildSections([], '2026-11-18', 1).map(s => s.tab);
+
+    expect(tabs).toEqual(['コード', 'テスト', 'テスト', '全体']);
+  });
+
   // コード本体とテストコードの見出しに、対象の拡張子を表示する
   test('shows the code extensions in the headings of code and tests', () => {
     const [code, tests] = buildSections([], '2026-11-18', 1);
