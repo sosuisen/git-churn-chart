@@ -63,9 +63,9 @@ describe('buildSections', () => {
     expect([stat?.added, stat?.deleted]).toEqual([2, 1]);
   });
 
-  // コード本体とテストコードは、変更のある言語ごとに、日ごとの行数を持つ。ほかのグラフは持たない
-  test('gives code and tests the daily lines of each language with changes, and not the other charts', () => {
-    const [code, tests, testCount, all] = buildSections(
+  // コード本体とテストコードは、変更のある言語ごとに、日ごとの行数を持つ。すべてのファイルは持たない
+  test('gives code and tests the daily lines of each language with changes, and not all files', () => {
+    const [code, tests, , all] = buildSections(
       [
         change('src/lib.rs', ['a', 'b'], ['c']),
         change('src/main/java/App.java', ['a']),
@@ -87,8 +87,32 @@ describe('buildSections', () => {
       ['Java', 1, 0],
     ]);
     expect(lines(tests)).toEqual([['Java', 3, 0]]);
-    expect(testCount?.languages).toBeUndefined();
+
     expect(all?.languages).toBeUndefined();
+  });
+
+  // テストの数は、テストの増減のある言語ごとに、日ごとのテストの数を持つ
+  test('gives the number of tests the daily tests of each language with changes', () => {
+    const testCount = buildSections(
+      [
+        change('src/lib.rs', ['#[test]', 'fn adds() {}'], ['#[test]']),
+        change('src/test/java/AppTest.java', ['@Test', '@Test']),
+        change('src/main/kotlin/App.kt', ['fun main() {}']),
+      ],
+      '2026-11-18',
+      1,
+    )[2];
+
+    expect(
+      testCount?.languages?.map(({ name, stats }) => [
+        name,
+        stats[0]?.added,
+        stats[0]?.deleted,
+      ]),
+    ).toEqual([
+      ['Rust', 1, 1],
+      ['Java', 2, 0],
+    ]);
   });
 
   // 言語の色の番号は、期間の中にある言語が変わっても同じである

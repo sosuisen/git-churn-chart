@@ -15,7 +15,7 @@ interface LanguageChange extends DatedChange {
 /**
  * Builds the charts of the page: code without tests, tests, number of tests, and all files.
  * The first, second, and fourth charts count lines. The third chart counts tests.
- * The first and second charts also have the lines of each language.
+ * The first three charts also have the numbers of each language.
  *
  * @param endDate Last day of the period in `YYYY-MM-DD`.
  * @param days Length of the period. It must be a positive integer.
@@ -48,6 +48,7 @@ export function buildSections(
   }));
   const testCount = changes.map(change => ({
     date: change.date,
+    language: languageOf(change.path),
     ...countTests(change),
   }));
   return [
@@ -67,6 +68,7 @@ export function buildSections(
       tab: 'テスト',
       heading: 'テストの数（テストの宣言を数えた推定）',
       stats: buildDailyStats(testCount, endDate, days),
+      languages: buildLanguageLines(testCount, endDate, days),
     },
     {
       tab: '全体',
