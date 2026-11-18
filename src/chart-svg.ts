@@ -97,14 +97,14 @@ export function renderLanguagesSvg(lines: readonly LanguageLine[]): string {
         );
         return `<polyline class="line series-${line.colorIndex + 1}" points="${points.join(' ')}"/>`;
       }),
-      ...spread(lines.map(line => toY(line.stats.at(-1)?.cumulative ?? 0))).map(
-        (y, index) => {
-          const line = lines[index];
-          return line === undefined
-            ? ''
-            : `<text class="series-label series-${line.colorIndex + 1}" x="${labelX}" y="${round(y)}" dy="0.32em">${escapeHtml(line.name)}</text>`;
-        },
-      ),
+      ...spread(
+        lines.map(line => round(toY(line.stats.at(-1)?.cumulative ?? 0))),
+      ).map((y, index) => {
+        const line = lines[index];
+        return line === undefined
+          ? ''
+          : `<text class="series-label series-${line.colorIndex + 1}" x="${labelX}" y="${round(y)}" dy="0.32em">${escapeHtml(line.name)}</text>`;
+      }),
     ];
   });
 }
@@ -124,32 +124,40 @@ function spread(heights: readonly number[]): number[] {
   const wanted = order.map(item => item.y);
   // One pass pushes the labels down. The other pass pushes them up.
   // The middle of the two keeps a group of labels around its lines.
-  const down = pushApart(wanted, 1);
-  const up = pushApart(wanted.toReversed(), -1).reverse();
+  const down = pushDown(wanted);
+  const up = pushUp(wanted);
   const middle = down.map((y, position) => (y + (up[position] ?? y)) / 2);
+  // The middle can leave the plot. These passes move only the labels that are outside.
+  const inside = pushDown(pushUp(middle));
   const result: number[] = [];
-  middle.forEach((y, position) => {
+  inside.forEach((y, position) => {
     result[order[position]?.index ?? position] = y;
   });
   return result;
 }
 
-/**
- * @param heights Positions in the order of the pass.
- * @param direction `1` when the pass goes down, `-1` when it goes up.
- */
-function pushApart(heights: readonly number[], direction: 1 | -1): number[] {
+/** Moves labels down from the top of the plot. `heights` is in order from top to bottom. */
+function pushDown(heights: readonly number[]): number[] {
   const result: number[] = [];
+  let limit = MARGIN.top;
   for (const y of heights) {
-    const previous = result.at(-1);
-    result.push(
-      previous === undefined
-        ? y
-        : direction *
-            Math.max(direction * y, direction * previous + MIN_LABEL_SPACING),
-    );
+    const placed = Math.max(y, limit);
+    result.push(placed);
+    limit = placed + MIN_LABEL_SPACING;
   }
   return result;
+}
+
+/** Moves labels up from the bottom of the plot. `heights` is in order from top to bottom. */
+function pushUp(heights: readonly number[]): number[] {
+  const result: number[] = [];
+  let limit = PLOT_BOTTOM;
+  for (const y of heights.toReversed()) {
+    const placed = Math.min(y, limit);
+    result.push(placed);
+    limit = placed - MIN_LABEL_SPACING;
+  }
+  return result.reverse();
 }
 
 /**
