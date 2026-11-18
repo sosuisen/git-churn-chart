@@ -46,9 +46,10 @@ const LANGUAGE_BY_EXTENSION = new Map<string, string>(
  * @returns A name in `LANGUAGES`, or `undefined` when the file is not code.
  */
 export function languageOf(path: string): string | undefined {
-  const file = (path.split('/').pop() ?? '').toLowerCase();
-  // A minified file is not written by a person.
-  if (file.endsWith('.min.js')) {
+  const directories = path.split('/');
+  const file = (directories.pop() ?? '').toLowerCase();
+  // A minified file is not written by a person. A vendor directory holds code from other projects.
+  if (file.endsWith('.min.js') || directories.includes('vendor')) {
     return undefined;
   }
   const dot = file.lastIndexOf('.');
