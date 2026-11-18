@@ -44,6 +44,15 @@ const withTracked = {
     ],
   },
 };
+const tabbed = {
+  label: '1週間',
+  sections: [
+    { tab: 'コード', heading: 'コード本体', stats },
+    { tab: 'テスト', heading: 'テストコード', stats },
+    { tab: 'テスト', heading: 'テストの数', stats },
+    { tab: '全体', heading: 'すべてのファイル', stats },
+  ],
+};
 const week = { label: '1週間', sections: [all] };
 const both = { label: '2週間', sections: [all, code] };
 const month = { label: '1か月', sections: [code] };
@@ -182,6 +191,7 @@ describe('renderPage', () => {
     expect(page).toContain('2026-11-16 〜 2026-11-18（3日間）');
     expect(page).not.toContain('<h2>コード本体</h2>');
     expect(page).not.toContain('class="legend"');
+    expect(page).not.toContain('class="tabs"');
   });
 
   // 行数のグラフは、線の終点に最後の日の行数を表示し、表に日ごとの行数を並べる
@@ -224,6 +234,43 @@ describe('renderPage', () => {
 
     expect(page).toContain('aria-pressed="false">1週間</button>');
     expect(page).toContain('aria-pressed="true">1か月</button>');
+  });
+
+  // タブごとのボタンを、最初のグラフの順に並べる。最初のタブのボタンは、押された状態である
+  test('lists a button for each tab in the order of their first charts, with the first one pressed', () => {
+    const page = renderPage('my-repo', [tabbed, tabbed], 0);
+
+    expect(
+      [
+        ...page.matchAll(
+          /<button [^>]*data-tab="(\d)" aria-pressed="(\w+)">([^<]*)</g,
+        ),
+      ].map(match => match.slice(1)),
+    ).toEqual([
+      ['0', 'true', 'コード'],
+      ['1', 'false', 'テスト'],
+      ['2', 'false', '全体'],
+    ]);
+  });
+
+  // どの期間でも、最初のタブのグラフだけを表示し、ほかのタブのグラフは隠す
+  test('shows only the charts of the first tab in every period and hides the charts of the other tabs', () => {
+    const page = renderPage('my-repo', [tabbed, tabbed], 0);
+
+    expect(
+      [...page.matchAll(/<section data-tab="(\d)"( hidden)?>/g)].map(match =>
+        match.slice(1),
+      ),
+    ).toEqual([
+      ['0', undefined],
+      ['1', ' hidden'],
+      ['1', ' hidden'],
+      ['2', ' hidden'],
+      ['0', undefined],
+      ['1', ' hidden'],
+      ['1', ' hidden'],
+      ['2', ' hidden'],
+    ]);
   });
 
   // リポジトリ名はエスケープして表示する
