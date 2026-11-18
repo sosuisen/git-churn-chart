@@ -21,6 +21,13 @@ describe('languageOf', () => {
     expect(languageOf('engine/src/parser.cxx')).toBeUndefined();
   });
 
+  // 名前が.min.jsで終わるファイルは、コードではない。人が書いたコードではないためである
+  test('names no language for a file whose name ends with .min.js', () => {
+    expect(languageOf('app/src/lib/pixi.min.js')).toBeUndefined();
+    expect(languageOf('app/src/lib/PIXI.MIN.JS')).toBeUndefined();
+    expect(languageOf('app/src/lib/admin.js')).toBe('TypeScript・JavaScript');
+  });
+
   // コードでないファイルに、言語はない
   test('names no language for a file that is not code', () => {
     expect(languageOf('README.md')).toBeUndefined();
