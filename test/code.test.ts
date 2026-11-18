@@ -73,7 +73,7 @@ describe('isCode', () => {
 
   // 拡張子の大文字と小文字は区別しない
   test('ignores the case of the extension', () => {
-    expect(isCode('app/Main.KT')).toBe(true);
+    expect(isCode('app/src/Main.KT')).toBe(true);
   });
 
   // ドキュメント・設定・ロックファイル・画像はコードではない

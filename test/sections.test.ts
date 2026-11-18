@@ -117,7 +117,7 @@ describe('buildSections', () => {
 
   // テストのパスにあるコードは、テストコードとすべてのファイルに入る
   test('counts code in a test path in tests and in all files', () => {
-    expect(totals([change('tests/app.rs', ['a', 'b'], ['c'])])).toEqual({
+    expect(totals([change('src/tests/app.rs', ['a', 'b'], ['c'])])).toEqual({
       code: [0, 0],
       tests: [2, 1],
       all: [2, 1],
