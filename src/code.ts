@@ -19,8 +19,8 @@ const LANGUAGE_EXTENSIONS = [
     extensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'],
   },
   { name: 'Java', extensions: ['java'] },
-  // `.h` can also be C or Objective-C. It counts as C++ because the list has no C.
-  { name: 'C++', extensions: ['cpp', 'cc', 'cxx', 'hpp', 'hh', 'hxx', 'h'] },
+  // Headers are left out on purpose. `.h` can also be C or Objective-C.
+  { name: 'C++', extensions: ['cpp'] },
 ] as const;
 
 /** Names of the languages that count as code, in a fixed order. */

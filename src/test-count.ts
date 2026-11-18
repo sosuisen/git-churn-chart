@@ -28,8 +28,6 @@ const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
   mjs: JS_TEST,
   cjs: JS_TEST,
   cpp: CPP_TEST,
-  cc: CPP_TEST,
-  cxx: CPP_TEST,
 };
 
 /**
