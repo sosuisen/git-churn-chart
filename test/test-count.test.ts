@@ -167,7 +167,7 @@ describe('countTests', () => {
   test('does not count a file in a place that does not count as code', () => {
     const lines = ["test('reads a line', () => {});"];
 
-    expect(countTests(change('test/parser.test.ts', lines)).added).toBe(0);
+    expect(countTests(change('tools/check.ts', lines)).added).toBe(0);
     expect(countTests(change('src/vendor/parser.test.ts', lines)).added).toBe(
       0,
     );

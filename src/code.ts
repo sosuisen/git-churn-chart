@@ -1,3 +1,5 @@
+import { isTestPath } from './test-path.ts';
+
 /**
  * Languages that count as code, with the extensions of their files.
  * Data, settings, lock files, images, and documents are not in this list.
@@ -35,7 +37,7 @@ export const CODE_EXTENSIONS: readonly string[] = LANGUAGE_EXTENSIONS.flatMap(
 
 /**
  * Extensions of the files that count as code in any directory.
- * The files of the other extensions count only in a directory named `src`.
+ * The files of the other extensions count only in a directory named `src`, or in a test path.
  * Projects of Xcode, Visual Studio, and Emacs Lisp often have no `src` directory.
  */
 const ANYWHERE_EXTENSIONS: ReadonlySet<string> = new Set([
@@ -67,10 +69,12 @@ export function languageOf(path: string): string | undefined {
   }
   const dot = file.lastIndexOf('.');
   const extension = dot < 0 ? '' : file.slice(dot + 1);
-  if (!directories.includes('src') && !ANYWHERE_EXTENSIONS.has(extension)) {
-    return undefined;
-  }
-  return LANGUAGE_BY_EXTENSION.get(extension);
+  // Tests often live outside `src`, such as in `tests` next to `src`.
+  const isInScope =
+    directories.includes('src') ||
+    ANYWHERE_EXTENSIONS.has(extension) ||
+    isTestPath(path);
+  return isInScope ? LANGUAGE_BY_EXTENSION.get(extension) : undefined;
 }
 
 /**
