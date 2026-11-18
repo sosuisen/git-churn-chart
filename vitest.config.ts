@@ -8,7 +8,13 @@ export default defineConfig({
       // main.ts is the entry point and git.ts only calls the git command.
       // Unit tests cannot run them without a real repository.
       // browser.ts only starts the browser of the system.
-      exclude: ['src/main.ts', 'src/git.ts', 'src/browser.ts'],
+      // tooltip.ts needs the layout of a real browser.
+      exclude: [
+        'src/main.ts',
+        'src/git.ts',
+        'src/browser.ts',
+        'src/tooltip.ts',
+      ],
     },
   },
 });

@@ -1,244 +1,89 @@
 import { describe, expect, test } from 'vitest';
-import { buildDailyStats } from '../src/daily-stats.ts';
 import { renderPage } from '../src/page.ts';
+import type { PageData } from '../src/view.ts';
 
-const stats = buildDailyStats(
-  [
-    { date: '2026-11-16', added: 1200, deleted: 0 },
-    { date: '2026-11-18', added: 30, deleted: 450 },
-  ],
-  '2026-11-18',
-  3,
-);
-const codeStats = buildDailyStats(
-  [{ date: '2026-11-16', added: 900, deleted: 0 }],
-  '2026-11-18',
-  3,
-);
-const all = { tab: '全体', heading: 'すべてのファイル', stats };
-const code = { tab: '全体', heading: 'コードのみ', stats: codeStats };
-const noChanges = buildDailyStats([], '2026-11-18', 3);
-const byLanguage = {
-  label: '1週間',
+const dates = ['2026-11-15', '2026-11-16', '2026-11-17', '2026-11-18'];
+const section = (tab: string, heading: string) => ({
+  tab,
+  heading,
+  added: [10, 0, 5, 2],
+  deleted: [0, 3, 0, 4],
+});
+const data: PageData = {
+  dates,
   sections: [
-    {
-      tab: '全体',
-      heading: 'コード本体',
-      stats: noChanges,
-      languages: [
-        { name: 'Rust', colorIndex: 0, stats },
-        { name: 'Java', colorIndex: 6, stats: codeStats },
-      ],
-    },
+    section('コード', 'コード本体'),
+    section('テスト', 'テストコード'),
+    section('テスト', 'テストの数'),
+    section('全体', 'すべてのファイル'),
   ],
 };
-const withTracked = {
-  label: '1週間',
-  sections: [{ tab: '全体', heading: 'コード本体', stats: noChanges }],
-  tracked: {
-    path: 'docs/plans.md',
-    days: [
-      { date: '2026-11-16', lines: 12 },
-      { date: '2026-11-17', lines: 1500 },
-      { date: '2026-11-18', lines: 8 },
-    ],
-  },
+const tracked: PageData = {
+  dates,
+  sections: [],
+  tracked: { path: 'docs/plans.md', lines: [3, 8, 8, 5] },
 };
-const tabbed = {
-  label: '1週間',
-  sections: [
-    { tab: 'コード', heading: 'コード本体', stats },
-    { tab: 'テスト', heading: 'テストコード', stats },
-    { tab: 'テスト', heading: 'テストの数', stats },
-    { tab: '全体', heading: 'すべてのファイル', stats },
-  ],
-};
-const week = { label: '1週間', sections: [all] };
-const both = { label: '2週間', sections: [all, code] };
-const month = { label: '1か月', sections: [code] };
+const SCRIPT = 'function startPage() {}';
 
-const count = (text: string, pattern: RegExp) =>
-  [...text.matchAll(pattern)].length;
+/** A page of one year. The buttons of all periods fit in it. */
+const yearPage = (days: number) => {
+  const zeros = Array.from({ length: 365 }, () => 0);
+  const year: PageData = {
+    dates: zeros.map((_, index) =>
+      new Date(Date.UTC(2026, 0, 1 + index)).toISOString().slice(0, 10),
+    ),
+    sections: [{ tab: '全体', heading: 'x', added: zeros, deleted: zeros }],
+  };
+  return renderPage('my-repo', year, days, SCRIPT);
+};
 
 // グラフのページ
 describe('renderPage', () => {
-  // 追加のある日ごとに追加の棒を、削除のある日ごとに削除の棒を描く
-  test('draws a bar for each day with added lines and each day with deleted lines', () => {
-    const page = renderPage('my-repo', [week], 0);
+  // 最初に出す期間は、最後の日で終わる、指定した日数の期間である
+  test('shows first the period of the given number of days that ends on the last day', () => {
+    const page = renderPage('my-repo', data, 3, SCRIPT);
 
-    expect(count(page, /class="bar added"/g)).toBe(2);
-    expect(count(page, /class="bar deleted"/g)).toBe(1);
-  });
-
-  // 累計の線は、日ごとに1つの点を持つ
-  test('draws one point of the cumulative line for each day', () => {
-    const page = renderPage('my-repo', [week], 0);
-
-    expect(count(page, /class="marker"/g)).toBe(3);
-  });
-
-  // 線の終点に、期間全体の純増を表示する
-  test('shows the net change of the whole period at the end of the line', () => {
-    expect(renderPage('my-repo', [week], 0)).toContain('累計 +780');
-  });
-
-  // 表には、日ごとの追加・削除・純増・累計が並ぶ
-  test('lists added, deleted, net, and cumulative lines of each day in the table', () => {
-    const page = renderPage('my-repo', [week], 0);
-
-    expect(page).toContain(
-      '<tr><td>2026-11-18</td><td>+30</td><td>−450</td><td>−420</td><td>+780</td></tr>',
-    );
-  });
-
-  // セクションごとに、見出し・グラフ・表を、渡した順に上から並べる
-  test('places a heading, a chart, and a table for each section in the given order', () => {
-    const page = renderPage('my-repo', [both], 0);
-
-    expect(count(page, /<svg /g)).toBe(2);
-    expect(count(page, /<table>/g)).toBe(2);
-    expect(page.indexOf('<h2>すべてのファイル</h2>')).toBeGreaterThan(-1);
-    expect(page.indexOf('<h2>コードのみ</h2>')).toBeGreaterThan(
-      page.indexOf('<h2>すべてのファイル</h2>'),
-    );
-  });
-
-  // 各セクションのグラフは、そのセクションの行数を表示する
-  test('shows the lines of its own section in each chart', () => {
-    const page = renderPage('my-repo', [both], 0);
-
-    expect(page).toContain('累計 +780');
-    expect(page).toContain('累計 +900');
-  });
-
-  // 期間の最初の日と最後の日を表示する
-  test('shows the first day and the last day of the period', () => {
-    expect(renderPage('my-repo', [week], 0)).toContain(
-      '2026-11-16 〜 2026-11-18（3日間）',
-    );
-  });
-
-  // 30日のグラフでは、横軸の日付を1日おきに書く。最後の日は必ず書く
-  test('writes the date of every second day in a chart of 30 days, with the last day', () => {
-    const longStats = buildDailyStats([], '2026-11-18', 30);
-    const long = { label: '1か月', sections: [{ ...all, stats: longStats }] };
-
-    const page = renderPage('my-repo', [long], 0);
-
-    expect(count(page, /text-anchor="middle"/g)).toBe(15);
-    expect(page).toContain('>11/18</text>');
-    expect(page).not.toContain('>11/17</text>');
-  });
-
-  // 90日以上のグラフでは、累計の線に点を描かない。点が重なって、線が見えなくなるためである
-  test('draws no points on the cumulative line in a chart of 90 days', () => {
-    const longStats = buildDailyStats([], '2026-11-18', 90);
-    const long = { label: '3か月', sections: [{ ...all, stats: longStats }] };
-
-    const page = renderPage('my-repo', [long], 0);
-
-    expect(count(page, /class="marker"/g)).toBe(0);
-    expect(count(page, /class="line"/g)).toBe(1);
-  });
-
-  // 言語を持つセクションは、グラフの下に、言語ごとに1本の線のグラフを描く。棒は描かない
-  test('draws a second chart with one line for each language and no bars below the chart', () => {
-    const page = renderPage('my-repo', [byLanguage], 0);
-
-    expect(count(page, /<svg /g)).toBe(2);
-    expect(count(page, /class="line series-1"/g)).toBe(1);
-    expect(count(page, /class="line series-7"/g)).toBe(1);
-    expect(count(page, /class="bar /g)).toBe(0);
-  });
-
-  // 言語別のグラフの凡例に、言語の名前と、期間全体の純増が並ぶ
-  test('lists the name and the net change of each language in the legend of the language chart', () => {
-    const page = renderPage('my-repo', [byLanguage], 0);
-
-    expect(page).toContain('Rust<span class="total">+780</span>');
-    expect(page).toContain('Java<span class="total">+900</span>');
-  });
-
-  // 言語別のグラフの表に、日ごとの、言語ごとの累計が並ぶ
-  test('lists the cumulative lines of each language of each day in the table of the language chart', () => {
-    const page = renderPage('my-repo', [byLanguage], 0);
-
-    expect(page).toContain('<th>日付</th><th>Rust</th><th>Java</th>');
-    expect(page).toContain(
-      '<tr><td>2026-11-18</td><td>+780</td><td>+900</td></tr>',
-    );
-  });
-
-  // 変更のある言語がないとき、言語別のグラフを出さない
-  test('shows no language chart when no language has changes', () => {
-    const empty = {
-      label: '1週間',
-      sections: [
-        { tab: '全体', heading: 'コード本体', stats: noChanges, languages: [] },
-      ],
-    };
-
-    expect(count(renderPage('my-repo', [empty], 0), /<svg /g)).toBe(1);
-  });
-
-  // 行数を持つ期間のページは、そのファイルの行数のグラフだけを描く。ほかのグラフと、棒の凡例は出さない
-  test('draws only the chart of the lines of the tracked file, without the other charts and the legend of bars', () => {
-    const page = renderPage('my-repo', [withTracked], 0);
-
-    expect(count(page, /<svg /g)).toBe(1);
-    expect(count(page, /class="line count"/g)).toBe(1);
-    expect(page).toContain('<h1>my-repo の docs/plans.md の行数</h1>');
     expect(page).toContain('2026-11-16 〜 2026-11-18（3日間）');
-    expect(page).not.toContain('<h2>コード本体</h2>');
-    expect(page).not.toContain('class="legend"');
-    expect(page).not.toContain('class="tabs"');
+    expect(page).toContain('累計 0');
   });
 
-  // 行数のグラフは、線の終点に最後の日の行数を表示し、表に日ごとの行数を並べる
-  test('shows the lines of the last day at the end of the line and lists the lines of each day in the table', () => {
-    const page = renderPage('my-repo', [withTracked], 0);
+  // 開始日と終了日の入力は、最初の期間の日付を持つ。選べる範囲は、ページの最初の日から最後の日までである
+  test('gives the inputs of the start and the end the dates of the first period, inside the days of the page', () => {
+    const page = renderPage('my-repo', data, 3, SCRIPT);
 
-    expect(page).toContain('>8行</text>');
-    expect(page).toContain('<th>日付</th><th>行数</th>');
-    expect(page).toContain('<tr><td>2026-11-17</td><td>1,500</td></tr>');
-  });
-
-  // 行数を持たない期間は、行数のグラフを描かない
-  test('draws no chart of lines when the period has no tracked file', () => {
-    expect(renderPage('my-repo', [week], 0)).not.toContain(
-      'class="line count"',
+    expect(page).toContain(
+      '<input type="date" id="start" min="2026-11-15" max="2026-11-18" value="2026-11-16">',
+    );
+    expect(page).toContain(
+      '<input type="date" id="end" min="2026-11-15" max="2026-11-18" value="2026-11-18">',
     );
   });
 
-  // 期間ごとのボタンを、渡した順に並べる
-  test('places a button for each period in the given order', () => {
-    const page = renderPage('my-repo', [week, month], 0);
+  // 期間のボタンは、1週間・2週間・1か月・3か月・6か月・1年の順に並ぶ。最初の期間と同じ日数のボタンは、押された状態である
+  test('lists the buttons of the periods from one week to one year, with the one of the first period pressed', () => {
+    const buttons = (page: string) =>
+      [
+        ...page.matchAll(
+          /<button [^>]*data-days="(\d+)" aria-pressed="(\w+)">([^<]*)</g,
+        ),
+      ].map(match => match.slice(1));
 
-    expect(page.indexOf('>1週間</button>')).toBeGreaterThan(-1);
-    expect(page.indexOf('>1か月</button>')).toBeGreaterThan(
-      page.indexOf('>1週間</button>'),
+    expect(buttons(yearPage(30))).toEqual([
+      ['7', 'false', '1週間'],
+      ['14', 'false', '2週間'],
+      ['30', 'true', '1か月'],
+      ['90', 'false', '3か月'],
+      ['180', 'false', '6か月'],
+      ['365', 'false', '1年'],
+    ]);
+    expect(buttons(yearPage(10)).map(([, pressed]) => pressed)).toEqual(
+      Array.from({ length: 6 }, () => 'false'),
     );
-  });
-
-  // 選んだ期間のグラフだけを表示し、ほかの期間は隠す
-  test('shows only the view of the selected period and hides the others', () => {
-    const page = renderPage('my-repo', [week, month], 1);
-
-    expect(page).toContain('<div class="view" data-period="0" hidden>');
-    expect(page).toContain('<div class="view" data-period="1">');
-  });
-
-  // 選んだ期間のボタンは、押された状態である
-  test('marks only the button of the selected period as pressed', () => {
-    const page = renderPage('my-repo', [week, month], 1);
-
-    expect(page).toContain('aria-pressed="false">1週間</button>');
-    expect(page).toContain('aria-pressed="true">1か月</button>');
   });
 
   // タブごとのボタンを、最初のグラフの順に並べる。最初のタブのボタンは、押された状態である
   test('lists a button for each tab in the order of their first charts, with the first one pressed', () => {
-    const page = renderPage('my-repo', [tabbed, tabbed], 0);
+    const page = renderPage('my-repo', data, 3, SCRIPT);
 
     expect(
       [
@@ -253,53 +98,48 @@ describe('renderPage', () => {
     ]);
   });
 
-  // どの期間でも、最初のタブのグラフだけを表示し、ほかのタブのグラフは隠す
-  test('shows only the charts of the first tab in every period and hides the charts of the other tabs', () => {
-    const page = renderPage('my-repo', [tabbed, tabbed], 0);
+  // ページは、すべての日のデータと、渡したスクリプトを持つ。スクリプトは、最初の日数で始まる
+  test('has the data of every day and the given script, which starts with the first number of days', () => {
+    const page = renderPage('my-repo', data, 3, SCRIPT);
 
-    expect(
-      [...page.matchAll(/<section data-tab="(\d)"( hidden)?>/g)].map(match =>
-        match.slice(1),
-      ),
-    ).toEqual([
-      ['0', undefined],
-      ['1', ' hidden'],
-      ['1', ' hidden'],
-      ['2', ' hidden'],
-      ['0', undefined],
-      ['1', ' hidden'],
-      ['1', ' hidden'],
-      ['2', ' hidden'],
-    ]);
+    const json =
+      /<script type="application\/json" id="data">(.*?)<\/script>/.exec(
+        page,
+      )?.[1];
+    expect(JSON.parse(json ?? '')).toEqual(data);
+    expect(page).toContain(SCRIPT);
+    expect(page).toContain(', 3);\n}</script>');
+  });
+
+  // スクリプトの中の</script>は、エスケープする。スクリプトの要素を途中で終わらせないためである
+  test('escapes </script> in the script, so that it does not end the script element early', () => {
+    const page = renderPage('my-repo', data, 3, "const x = '</script>';");
+
+    expect(page).toContain("const x = '<\\/script>';");
+  });
+
+  // ファイルの行数のページは、見出しにファイルのパスを書く。タブと、棒の凡例は出さない
+  test('writes the path of the file in the title of the page of a tracked file, without the tabs and the legend of bars', () => {
+    const page = renderPage('my-repo', tracked, 3, SCRIPT);
+
+    expect(page).toContain('<h1>my-repo の docs/plans.md の行数</h1>');
+    expect(page).toContain('class="line count"');
+    expect(page).not.toContain('class="legend"');
+    expect(page).not.toContain('class="tabs"');
   });
 
   // リポジトリ名はエスケープして表示する
   test('escapes the repository name', () => {
-    const page = renderPage('<script>', [week], 0);
+    const page = renderPage('<script>', data, 3, SCRIPT);
 
     expect(page).toContain('&lt;script&gt; のコード行数の変化');
     expect(page).not.toContain('<script> のコード行数の変化');
   });
 
-  // 選んだ期間が範囲の外のとき、例外を投げる
-  test('throws when the selected period is out of range', () => {
-    expect(() => renderPage('my-repo', [week], 1)).toThrow(RangeError);
-  });
-
-  // セクションが1つもないとき、例外を投げる
-  test('throws when there are no sections', () => {
-    const empty = { label: '1週間', sections: [] };
-
-    expect(() => renderPage('my-repo', [empty], 0)).toThrow(RangeError);
-  });
-
-  // セクションに日が1つもないとき、例外を投げる
-  test('throws when a section has no days', () => {
-    const noDays = {
-      label: '1週間',
-      sections: [{ tab: '全体', heading: 'x', stats: [] }],
-    };
-
-    expect(() => renderPage('my-repo', [noDays], 0)).toThrow(RangeError);
+  // 最初の日数が、1からページの日数までの整数でないとき、例外を投げる
+  test('throws when the first number of days is not an integer from 1 to the days of the page', () => {
+    expect(() => renderPage('my-repo', data, 0, SCRIPT)).toThrow(RangeError);
+    expect(() => renderPage('my-repo', data, 5, SCRIPT)).toThrow(RangeError);
+    expect(() => renderPage('my-repo', data, 1.5, SCRIPT)).toThrow(RangeError);
   });
 });

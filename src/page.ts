@@ -1,14 +1,15 @@
-import {
-  type LanguageLine,
-  renderChartSvg,
-  renderFileLinesSvg,
-  renderLanguagesSvg,
-} from './chart-svg.ts';
-import type { DailyStat } from './daily-stats.ts';
-import type { DailyLines } from './file-lines.ts';
-import { escapeHtml, formatCount, formatSigned } from './format.ts';
+import { escapeHtml, MINUS } from './format.ts';
+import { buildView, type PageData, renderView, tabsOf } from './view.ts';
 
-const MINUS = '−';
+/** Periods that the page offers as buttons. Each one ends on the last day of the page. */
+const PRESETS = [
+  { days: 7, label: '1週間' },
+  { days: 14, label: '2週間' },
+  { days: 30, label: '1か月' },
+  { days: 90, label: '3か月' },
+  { days: 180, label: '6か月' },
+  { days: 365, label: '1年' },
+] as const;
 
 const STYLE = `
 :root {
@@ -75,7 +76,9 @@ h1 { margin: 0; font-size: 20px; }
 .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 0; border-bottom: 1px solid var(--border); }
 .tabs button { padding: 8px 16px; margin-bottom: -1px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--text-secondary); font: inherit; font-size: 14px; cursor: pointer; }
 .tabs button[aria-pressed="true"] { border-bottom-color: var(--text-primary); color: var(--text-primary); font-weight: 600; }
-.periods { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 16px; }
+.periods { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 12px 0 16px; }
+.periods label { display: flex; align-items: center; gap: 6px; margin-left: 12px; color: var(--text-secondary); font-size: 13px; }
+.periods input { padding: 3px 8px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; }
 .periods button { padding: 4px 12px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); font: inherit; font-size: 13px; cursor: pointer; }
 .periods button[aria-pressed="true"] { background: var(--text-primary); border-color: var(--text-primary); color: var(--surface); }
 .period { margin: 0 0 16px; color: var(--text-secondary); font-size: 14px; }
@@ -142,157 +145,53 @@ th { color: var(--text-secondary); font-weight: 600; }
 th:first-child, td:first-child { text-align: left; }
 `;
 
-// The tooltip only repeats values that the table view also shows.
-const SCRIPT = `
-for (const chart of document.querySelectorAll('.chart')) {
-  const rows = JSON.parse(chart.querySelector('script').textContent);
-  const tooltip = chart.querySelector('.tooltip');
-  const show = target => {
-    const row = rows[Number(target.dataset.index)];
-    const title = document.createElement('strong');
-    title.textContent = row.date;
-    const lines = row.values.map(([label, value]) => {
-      const line = document.createElement('div');
-      const name = document.createElement('span');
-      const amount = document.createElement('span');
-      name.textContent = label;
-      amount.textContent = value;
-      line.append(name, amount);
-      return line;
-    });
-    tooltip.replaceChildren(title, ...lines);
-    tooltip.hidden = false;
-    const box = target.getBoundingClientRect();
-    const base = chart.getBoundingClientRect();
-    const half = tooltip.offsetWidth / 2;
-    const center = box.left - base.left + box.width / 2;
-    tooltip.style.left = Math.min(Math.max(center, half), base.width - half) + 'px';
-    tooltip.style.top = box.top - base.top + 'px';
-  };
-  const hide = () => {
-    tooltip.hidden = true;
-  };
-  for (const target of chart.querySelectorAll('.hit')) {
-    target.addEventListener('pointerenter', () => show(target));
-    target.addEventListener('pointerleave', hide);
-    target.addEventListener('focus', () => show(target));
-    target.addEventListener('blur', hide);
-  }
-}
-const buttons = document.querySelectorAll('.periods button');
-const views = document.querySelectorAll('.view');
-for (const button of buttons) {
-  button.addEventListener('click', () => {
-    for (const other of buttons) {
-      other.setAttribute('aria-pressed', String(other === button));
-    }
-    for (const view of views) {
-      view.hidden = view.dataset.period !== button.dataset.period;
-    }
-  });
-}
-const tabButtons = document.querySelectorAll('.tabs button');
-const sections = document.querySelectorAll('section[data-tab]');
-for (const button of tabButtons) {
-  button.addEventListener('click', () => {
-    for (const other of tabButtons) {
-      other.setAttribute('aria-pressed', String(other === button));
-    }
-    // The sections of every period change. So the tab stays when the period changes.
-    for (const section of sections) {
-      section.hidden = section.dataset.tab !== button.dataset.tab;
-    }
-  });
-}
-`;
-
-/** One chart of the page with its heading. */
-export interface ChartSection {
-  /**
-   * Name of the tab that shows the chart. The page shows one tab at a time.
-   * The tabs are in the order of their first chart.
-   */
-  readonly tab: string;
-  readonly heading: string;
-  /** Days in date order. It must not be empty. */
-  readonly stats: readonly DailyStat[];
-  /**
-   * The same numbers split by language. When it is set, a second chart
-   * below the first one shows the cumulative line of each language.
-   * Every language covers the same days as `stats`.
-   */
-  readonly languages?: readonly LanguageLine[];
-}
-
-/** One period that the page can show, with its charts. */
-export interface Period {
-  /** Name of the period. It is shown on the button that selects the period. */
-  readonly label: string;
-  /**
-   * Charts of the period. All sections cover the same days.
-   * It must not be empty, unless `tracked` is set. Then the page does not show it.
-   */
-  readonly sections: readonly ChartSection[];
-  /**
-   * The number of lines of one file. When it is set, the page shows
-   * only this chart. Every period of a page sets it, or none does.
-   */
-  readonly tracked?: FileLines;
-}
-
-/** The number of lines of one file on each day of a period. */
-export interface FileLines {
-  /** Path of the file. It is shown in the heading. */
-  readonly path: string;
-  /** Days in date order. */
-  readonly days: readonly DailyLines[];
-}
-
 /**
- * Builds a self-contained HTML page. The page has one view for each period.
- * Each view has a chart and a table view for each section, from top to bottom.
+ * Builds a self-contained HTML page.
+ * The page shows the charts of one period. The reader selects the period
+ * with a button or with two dates, inside the days of `data`.
+ * The page draws the first period itself. So it is readable without the script.
  *
  * @param repoName Name of the repository. It is shown in the title.
- * @param periods Periods to show. Each period gets a button that selects it.
- * @param selected Index of the period that the page shows first. It must be an index of `periods`.
+ * @param days Length of the period that the page shows first. It ends on the last day of `data`.
+ * It must be an integer from 1 to the number of days of `data`.
+ * @param clientScript JavaScript that defines `startPage`. `readClientScript` builds it.
  */
 export function renderPage(
   repoName: string,
-  periods: readonly Period[],
-  selected: number,
+  data: PageData,
+  days: number,
+  clientScript: string,
 ): string {
-  // Without this check, the page would hide every period.
-  if (periods[selected] === undefined) {
-    throw new RangeError(`selected must be an index of periods: ${selected}`);
+  if (!Number.isInteger(days) || days < 1 || days > data.dates.length) {
+    throw new RangeError(
+      `days must be an integer from 1 to ${data.dates.length}: ${days}`,
+    );
   }
-  const buttons = periods.map(
-    (period, index) =>
-      `<button type="button" data-period="${index}" aria-pressed="${index === selected}">${escapeHtml(period.label)}</button>`,
+  const last = data.dates.length - 1;
+  const first = last - (days - 1);
+  const presets = PRESETS.filter(preset => preset.days <= data.dates.length);
+  const buttons = presets.map(
+    preset =>
+      `<button type="button" data-days="${preset.days}" aria-pressed="${preset.days === days}">${preset.label}</button>`,
   );
-  const tracked = periods[selected]?.tracked;
-  // A page for a tracked file has one chart. It needs no tabs.
-  const tabs = tracked
-    ? []
-    : [...new Set(periods[selected]?.sections.map(section => section.tab))];
-  const tabButtons = tabs.map(
+  const dateInput = (id: string, label: string, index: number) =>
+    `<label>${label}<input type="date" id="${id}" min="${data.dates[0]}" max="${data.dates[last]}" value="${data.dates[index]}"></label>`;
+  const tabButtons = tabsOf(data).map(
     (tab, index) =>
       `<button type="button" data-tab="${index}" aria-pressed="${index === 0}">${escapeHtml(tab)}</button>`,
   );
   const tabBar =
-    tabs.length === 0
+    tabButtons.length === 0
       ? ''
       : `<div class="tabs" role="group" aria-label="グラフの種類">
 ${tabButtons.join('\n')}
 </div>
 `;
-  const views = periods.map((period, index) =>
-    renderPeriod(period, index, index === selected, tabs),
-  );
-  const title = tracked
-    ? `${escapeHtml(repoName)} の ${escapeHtml(tracked.path)} の行数`
+  const title = data.tracked
+    ? `${escapeHtml(repoName)} の ${escapeHtml(data.tracked.path)} の行数`
     : `${escapeHtml(repoName)} のコード行数の変化`;
   // The legend explains the bars and the cumulative line. A page for a tracked file has neither.
-  const legend = tracked
+  const legend = data.tracked
     ? ''
     : `<ul class="legend">
 <li><span class="swatch" style="background: var(--added)"></span>追加（行。テストの数のグラフでは、テスト）</li>
@@ -300,6 +199,10 @@ ${tabButtons.join('\n')}
 <li><span class="swatch line" style="background: var(--cumulative)"></span>純増の累計（追加 ${MINUS} 削除）</li>
 </ul>
 `;
+  // "<" must not appear as is. It could end the script element early.
+  const json = JSON.stringify(data).replaceAll('<', '\\u003c');
+  // The script writes "</script>" in the HTML of a chart. As is, it would end this script element.
+  const script = clientScript.replaceAll('</script', '<\\/script');
   return `<!doctype html>
 <html lang="ja">
 <head>
@@ -313,127 +216,19 @@ ${tabButtons.join('\n')}
 <h1>${title}</h1>
 ${tabBar}<div class="periods" role="group" aria-label="期間">
 ${buttons.join('\n')}
+${dateInput('start', '開始日', first)}
+${dateInput('end', '終了日', last)}
 </div>
-${legend}${views.join('\n')}
+${legend}<div id="view">
+${renderView(buildView(data, first, last), 0)}
+</div>
 </main>
-<script>${SCRIPT}</script>
+<script type="application/json" id="data">${json}</script>
+<script>{
+${script}
+startPage(document, JSON.parse(document.getElementById('data').textContent), ${days});
+}</script>
 </body>
 </html>
 `;
-}
-
-function renderPeriod(
-  period: Period,
-  index: number,
-  isSelected: boolean,
-  tabs: readonly string[],
-): string {
-  const days = period.tracked?.days ?? period.sections[0]?.stats;
-  if (days === undefined) {
-    throw new RangeError('sections must not be empty');
-  }
-  // The chart functions reject empty days. A second check here would be a duplicate.
-  const body = period.tracked
-    ? renderTracked(period.tracked)
-    : period.sections.map(section => renderSection(section, tabs)).join('\n');
-  const first = days[0]?.date ?? '';
-  const last = days.at(-1)?.date ?? '';
-  return `<div class="view" data-period="${index}"${isSelected ? '' : ' hidden'}>
-<p class="period">${first} 〜 ${last}（${days.length}日間）</p>
-${body}
-</div>`;
-}
-
-/** The only chart of a page for a tracked file. The title of the page names the file. */
-function renderTracked(tracked: FileLines): string {
-  const rows = tracked.days.map(day => ({
-    date: day.date,
-    values: [['行数', formatCount(day.lines)] as const],
-  }));
-  return `<section>
-${renderChart(renderFileLinesSvg(tracked.days), rows)}
-</section>`;
-}
-
-/** The values of one day. The tooltip and the table view both show them. */
-interface Row {
-  readonly date: string;
-  readonly values: readonly (readonly [label: string, value: string])[];
-}
-
-/** @param tabs Names of the tabs of the page. The first tab is the one that the page shows first. */
-function renderSection(section: ChartSection, tabs: readonly string[]): string {
-  const languages = section.languages ?? [];
-  const tab = tabs.indexOf(section.tab);
-  return `<section data-tab="${tab}"${tab === 0 ? '' : ' hidden'}>
-<h2>${escapeHtml(section.heading)}</h2>
-${renderChart(renderChartSvg(section.stats), section.stats.map(toRow))}
-${languages.length === 0 ? '' : renderLanguages(languages)}
-</section>`;
-}
-
-function renderLanguages(languages: readonly LanguageLine[]): string {
-  const items = languages.map(
-    ({ name, colorIndex, stats }) =>
-      `<li><span class="swatch line" style="background: var(--series-${colorIndex + 1})"></span>${escapeHtml(name)}<span class="total">${formatSigned(stats.at(-1)?.cumulative ?? 0)}</span></li>`,
-  );
-  return `<h3>言語別の、純増の累計</h3>
-<ul class="legend">
-${items.join('\n')}
-</ul>
-${renderChart(renderLanguagesSvg(languages), toLanguageRows(languages))}`;
-}
-
-/** A chart with its tooltip and its table view. */
-function renderChart(svg: string, rows: readonly Row[]): string {
-  const labels = rows[0]?.values.map(([label]) => label) ?? [];
-  const bodyRows = rows.map(
-    row =>
-      `<tr><td>${row.date}</td>${row.values
-        .map(([, value]) => `<td>${value}</td>`)
-        .join('')}</tr>`,
-  );
-  // "<" must not appear as is. It could end the script element early.
-  const json = JSON.stringify(rows).replaceAll('<', '\\u003c');
-  return `<div class="chart">
-${svg}
-<div class="tooltip" hidden></div>
-<script type="application/json">${json}</script>
-</div>
-<details>
-<summary>表で見る</summary>
-<table>
-<thead><tr><th>日付</th>${labels.map(label => `<th>${escapeHtml(label)}</th>`).join('')}</tr></thead>
-<tbody>
-${bodyRows.join('\n')}
-</tbody>
-</table>
-</details>`;
-}
-
-function toRow(stat: DailyStat): Row {
-  return {
-    date: stat.date,
-    values: [
-      ['追加', stat.added === 0 ? '0' : `+${formatCount(stat.added)}`],
-      [
-        '削除',
-        stat.deleted === 0 ? '0' : `${MINUS}${formatCount(stat.deleted)}`,
-      ],
-      ['純増', formatSigned(stat.net)],
-      ['累計', formatSigned(stat.cumulative)],
-    ],
-  };
-}
-
-/** One row for each day, with the cumulative net change of each language. */
-function toLanguageRows(languages: readonly LanguageLine[]): Row[] {
-  const days = languages[0]?.stats ?? [];
-  return days.map((day, index) => ({
-    date: day.date,
-    values: languages.map(
-      ({ name, stats }) =>
-        [name, formatSigned(stats[index]?.cumulative ?? 0)] as const,
-    ),
-  }));
 }
