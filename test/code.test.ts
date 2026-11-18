@@ -11,8 +11,14 @@ describe('languageOf', () => {
     expect(languageOf('app/tools/build.MJS')).toBe('TypeScript・JavaScript');
     expect(languageOf('app/MainWindow.xaml')).toBe('C#・XAML');
     expect(languageOf('engine/src/parser.cpp')).toBe('C++');
-    expect(languageOf('engine/include/parser.hpp')).toBe('C++');
-    expect(languageOf('engine/include/parser.h')).toBe('C++');
+  });
+
+  // C++は、.cppだけを数える。ヘッダーと、ほかの拡張子は数えない
+  test('counts only .cpp as C++, without headers and other extensions', () => {
+    expect(languageOf('engine/src/parser.hpp')).toBeUndefined();
+    expect(languageOf('engine/src/parser.h')).toBeUndefined();
+    expect(languageOf('engine/src/parser.cc')).toBeUndefined();
+    expect(languageOf('engine/src/parser.cxx')).toBeUndefined();
   });
 
   // コードでないファイルに、言語はない
