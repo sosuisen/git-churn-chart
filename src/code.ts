@@ -36,9 +36,14 @@ export const CODE_EXTENSIONS: readonly string[] = LANGUAGE_EXTENSIONS.flatMap(
 /**
  * Extensions of the files that count as code in any directory.
  * The files of the other extensions count only in a directory named `src`.
- * Projects of Xcode and Visual Studio often have no `src` directory.
+ * Projects of Xcode, Visual Studio, and Emacs Lisp often have no `src` directory.
  */
-const ANYWHERE_EXTENSIONS: ReadonlySet<string> = new Set(['swift', 'cs']);
+const ANYWHERE_EXTENSIONS: ReadonlySet<string> = new Set([
+  'swift',
+  'cs',
+  'xaml',
+  'el',
+]);
 
 const LANGUAGE_BY_EXTENSION = new Map<string, string>(
   LANGUAGE_EXTENSIONS.flatMap(({ name, extensions }) =>
