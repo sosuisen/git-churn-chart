@@ -63,9 +63,9 @@ describe('buildSections', () => {
     expect([stat?.added, stat?.deleted]).toEqual([2, 1]);
   });
 
-  // コード本体とテストコードは、変更のある言語ごとに、日ごとの行数を持つ。ほかのグラフは持たない
-  test('gives code and tests the daily lines of each language with changes, and not the other charts', () => {
-    const [code, tests, testCount, all] = buildSections(
+  // コード本体とテストコードは、変更のある言語ごとに、日ごとの行数を持つ。すべてのファイルは持たない
+  test('gives code and tests the daily lines of each language with changes, and not all files', () => {
+    const [code, tests, , all] = buildSections(
       [
         change('src/lib.rs', ['a', 'b'], ['c']),
         change('src/main/java/App.java', ['a']),
@@ -87,7 +87,7 @@ describe('buildSections', () => {
       ['Java', 1, 0],
     ]);
     expect(lines(tests)).toEqual([['Java', 3, 0]]);
-    expect(testCount?.languages).toBeUndefined();
+
     expect(all?.languages).toBeUndefined();
   });
 
