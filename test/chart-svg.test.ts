@@ -97,7 +97,12 @@ describe('renderLanguagesSvg', () => {
       'Swift',
       'Java',
     ]);
-    const gaps = byHeight.slice(1).map((label, i) => label.y - byHeight[i]!.y);
-    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(16);
+    const gaps = byHeight
+      .slice(1)
+      // The positions have one decimal place. The rounding removes the error of the subtraction.
+      .map((label, index) =>
+        Math.round((label.y - (byHeight[index]?.y ?? 0)) * 10),
+      );
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(160);
   });
 });
