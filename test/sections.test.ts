@@ -91,6 +91,30 @@ describe('buildSections', () => {
     expect(all?.languages).toBeUndefined();
   });
 
+  // テストの数は、テストの増減のある言語ごとに、日ごとのテストの数を持つ
+  test('gives the number of tests the daily tests of each language with changes', () => {
+    const testCount = buildSections(
+      [
+        change('src/lib.rs', ['#[test]', 'fn adds() {}'], ['#[test]']),
+        change('src/test/java/AppTest.java', ['@Test', '@Test']),
+        change('src/main/kotlin/App.kt', ['fun main() {}']),
+      ],
+      '2026-11-18',
+      1,
+    )[2];
+
+    expect(
+      testCount?.languages?.map(({ name, stats }) => [
+        name,
+        stats[0]?.added,
+        stats[0]?.deleted,
+      ]),
+    ).toEqual([
+      ['Rust', 1, 1],
+      ['Java', 2, 0],
+    ]);
+  });
+
   // 言語の色の番号は、期間の中にある言語が変わっても同じである
   test('keeps the color index of a language when the languages in the period change', () => {
     const java = change('src/main/java/App.java', ['a']);
