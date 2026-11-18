@@ -54,8 +54,8 @@ describe('countTests', () => {
       '});',
     ];
 
-    expect(countTests(change('test/parser.test.ts', lines)).added).toBe(4);
-    expect(countTests(change('test/parser.spec.jsx', lines)).added).toBe(4);
+    expect(countTests(change('src/parser.test.ts', lines)).added).toBe(4);
+    expect(countTests(change('src/parser.spec.jsx', lines)).added).toBe(4);
   });
 
   // Kotlinは、@Testと@ParameterizedTestを数える
@@ -94,7 +94,7 @@ describe('countTests', () => {
 
   // C++は、TEST(・TEST_F(・TEST_P(・TEST_CASE(を数える
   test('counts TEST(, TEST_F(, TEST_P(, and TEST_CASE( in C++', () => {
-    const file = change('tests/parser_test.cpp', [
+    const file = change('src/tests/parser_test.cpp', [
       'TEST(Parser, ReadsALine) {}',
       'TEST_F(ParserFixture, ReadsTwoLines) {}',
       'TEST_P(ParserCases, ReadsLines) {}',
@@ -145,7 +145,7 @@ describe('countTests', () => {
 
   // Emacs Lispは、(ert-deftestを数える
   test('counts (ert-deftest in Emacs Lisp', () => {
-    const file = change('test/parser-test.el', [
+    const file = change('src/test/parser-test.el', [
       '(ert-deftest parser-reads-a-line ()',
       '  (should (parser-read "a")))',
       '(defun parser-test-helper ())',

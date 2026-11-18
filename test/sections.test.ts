@@ -46,7 +46,7 @@ describe('buildSections', () => {
   // テストの数のグラフは、行ではなく、増えたテストと減ったテストを数える
   test('counts added and deleted tests, not lines, in the chart of the number of tests', () => {
     const file = change(
-      'tests/app.rs',
+      'src/tests/app.rs',
       ['#[test]', 'fn adds() {}', '#[test]', 'fn reads() {}'],
       ['#[test]', 'fn old() {}'],
     );

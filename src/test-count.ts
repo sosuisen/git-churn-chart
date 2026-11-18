@@ -1,3 +1,4 @@
+import { isCode } from './code.ts';
 import type { LineCount } from './daily-stats.ts';
 import type { FileChange } from './patch-log.ts';
 
@@ -40,7 +41,7 @@ const TEST_DECLARATIONS: Readonly<Record<string, RegExp>> = {
 export function countTests(change: FileChange): LineCount {
   const extension = change.path.split('.').pop()?.toLowerCase() ?? '';
   const declaration = TEST_DECLARATIONS[extension];
-  if (declaration === undefined) {
+  if (declaration === undefined || !isCode(change.path)) {
     return { added: 0, deleted: 0 };
   }
   const count = (lines: readonly string[]) =>
