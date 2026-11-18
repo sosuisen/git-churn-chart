@@ -82,9 +82,9 @@ Rustの行単位の切り分けは、ファイル全体を読まない。変更�
 1. `main`が引数を読み、今日の日付と、最初に出す期間を決める。開始日は、最も長い期間（365日）の最初の日である。
 2. `readPatchLog`が、開始日以降のログを、差分つきで読む。
 3. `parsePatchLog`が、ログをファイルごとの変更行にする。
-4. `buildPeriods`が、期間ごとに`buildSections`を呼ぶ。`--track`が付いていれば、`buildFileLines`も呼ぶ。`buildFileLines`は、今の行数から日ごとの変更をさかのぼり、そのファイルの日ごとの行数を出す。今の行数は、`main`が`readHeadFile`と`countLines`で数える。
+4. `buildPeriods`が、期間ごとに`buildSections`を呼ぶ。`--track`が付いていれば、`buildSections`の代わりに`buildFileLines`を呼ぶ。このとき、5のデータは作らない。`buildFileLines`は、今の行数から日ごとの変更をさかのぼり、そのファイルの日ごとの行数を出す。今の行数は、`main`が`readHeadFile`と`countLines`で数える。
 5. `buildSections`が、ファイルごとに`countByCategory`で行を分け、`countTests`でテストの宣言を数えて、4つのグラフのデータを作る。コード本体とテストコードには、`languageOf`で分けた言語ごとのデータも付ける。言語の色は、`LANGUAGES`の中の位置で決まる。その中で`buildDailyStats`が、日ごとに合計し、変更のない日を0で埋め、累計を計算する。
-6. `renderPage`が、期間ごとのボタンと表示をHTMLにする。1つの表示には、4つのセクションが上下に並ぶ。セクションごとに`renderChartSvg`がグラフを描く。言語ごとの行数を持つセクションでは、その下に`renderLanguagesSvg`が言語別のグラフを描く。ファイルの行数を持つ期間では、いちばん下に`renderFileLinesSvg`が行数のグラフを描く。最初に出す期間のほかは、`hidden`で隠す。
+6. `renderPage`が、期間ごとのボタンと表示をHTMLにする。1つの表示には、4つのセクションが上下に並ぶ。セクションごとに`renderChartSvg`がグラフを描く。言語ごとの行数を持つセクションでは、その下に`renderLanguagesSvg`が言語別のグラフを描く。ファイルの行数を持つ期間では、セクションの代わりに、`renderFileLinesSvg`が行数のグラフだけを描く。このページには、棒の凡例を出さない。最初に出す期間のほかは、`hidden`で隠す。
 7. ブラウザでボタンを押すと、HTMLの中のスクリプトが、表示する期間を入れ替える。
 8. `main`がHTMLを書き出し、そのパスを表示する。`--open`が付いていれば、`openInBrowser`がHTMLを既定のブラウザで開く。
 

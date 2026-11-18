@@ -197,11 +197,14 @@ export interface ChartSection {
 export interface Period {
   /** Name of the period. It is shown on the button that selects the period. */
   readonly label: string;
-  /** Charts of the period. It must not be empty. All sections cover the same days. */
+  /**
+   * Charts of the period. All sections cover the same days.
+   * It must not be empty, unless `tracked` is set. Then the page does not show it.
+   */
   readonly sections: readonly ChartSection[];
   /**
-   * The number of lines of one file. When it is set, the last chart
-   * of the period draws it as a line. It covers the same days as the sections.
+   * The number of lines of one file. When it is set, the page shows
+   * only this chart. Every period of a page sets it, or none does.
    */
   readonly tracked?: FileLines;
 }
@@ -238,7 +241,19 @@ export function renderPage(
   const views = periods.map((period, index) =>
     renderPeriod(period, index, index === selected),
   );
-  const title = `${escapeHtml(repoName)} のコード行数の変化`;
+  const tracked = periods[selected]?.tracked;
+  const title = tracked
+    ? `${escapeHtml(repoName)} の ${escapeHtml(tracked.path)} の行数`
+    : `${escapeHtml(repoName)} のコード行数の変化`;
+  // The legend explains the bars and the cumulative line. A page for a tracked file has neither.
+  const legend = tracked
+    ? ''
+    : `<ul class="legend">
+<li><span class="swatch" style="background: var(--added)"></span>追加（行。テストの数のグラフでは、テスト）</li>
+<li><span class="swatch" style="background: var(--deleted)"></span>削除</li>
+<li><span class="swatch line" style="background: var(--cumulative)"></span>純増の累計（追加 ${MINUS} 削除）</li>
+</ul>
+`;
   return `<!doctype html>
 <html lang="ja">
 <head>
@@ -253,12 +268,7 @@ export function renderPage(
 <div class="periods" role="group" aria-label="期間">
 ${buttons.join('\n')}
 </div>
-<ul class="legend">
-<li><span class="swatch" style="background: var(--added)"></span>追加（行。テストの数のグラフでは、テスト）</li>
-<li><span class="swatch" style="background: var(--deleted)"></span>削除</li>
-<li><span class="swatch line" style="background: var(--cumulative)"></span>純増の累計（追加 ${MINUS} 削除）</li>
-</ul>
-${views.join('\n')}
+${legend}${views.join('\n')}
 </main>
 <script>${SCRIPT}</script>
 </body>
@@ -271,30 +281,29 @@ function renderPeriod(
   index: number,
   isSelected: boolean,
 ): string {
-  const stats = period.sections[0]?.stats;
-  if (stats === undefined) {
+  const days = period.tracked?.days ?? period.sections[0]?.stats;
+  if (days === undefined) {
     throw new RangeError('sections must not be empty');
   }
-  // renderChartSvg rejects empty stats. A second check here would be a duplicate.
-  const body = [
-    ...period.sections.map(renderSection),
-    ...(period.tracked ? [renderTracked(period.tracked)] : []),
-  ].join('\n');
-  const first = stats[0]?.date ?? '';
-  const last = stats.at(-1)?.date ?? '';
+  // The chart functions reject empty days. A second check here would be a duplicate.
+  const body = period.tracked
+    ? renderTracked(period.tracked)
+    : period.sections.map(renderSection).join('\n');
+  const first = days[0]?.date ?? '';
+  const last = days.at(-1)?.date ?? '';
   return `<div class="view" data-period="${index}"${isSelected ? '' : ' hidden'}>
-<p class="period">${first} 〜 ${last}（${stats.length}日間）</p>
+<p class="period">${first} 〜 ${last}（${days.length}日間）</p>
 ${body}
 </div>`;
 }
 
+/** The only chart of a page for a tracked file. The title of the page names the file. */
 function renderTracked(tracked: FileLines): string {
   const rows = tracked.days.map(day => ({
     date: day.date,
     values: [['行数', formatCount(day.lines)] as const],
   }));
   return `<section>
-<h2>${escapeHtml(tracked.path)} の行数</h2>
 ${renderChart(renderFileLinesSvg(tracked.days), rows)}
 </section>`;
 }

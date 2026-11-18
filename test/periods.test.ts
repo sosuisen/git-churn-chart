@@ -71,6 +71,24 @@ describe('buildPeriods', () => {
     ]);
   });
 
+  // ファイルを指定すると、期間はほかのグラフを持たない。ページが、行数のグラフだけを出すためである
+  test('gives the periods no other charts when a file is tracked', () => {
+    const periods = buildPeriods(
+      [change('2026-11-18', ['a', 'b'])],
+      '2026-11-18',
+      { path: 'README.md', lines: 5 },
+    );
+
+    expect(periods.map(period => period.sections)).toEqual([
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+    ]);
+  });
+
   // ファイルを指定しないとき、期間は行数を持たない
   test('gives the periods no daily lines when no file is tracked', () => {
     expect(buildPeriods([], '2026-11-18')[0]?.tracked).toBeUndefined();

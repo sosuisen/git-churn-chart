@@ -20,21 +20,24 @@ export const PERIOD_DAYS: readonly number[] = PERIODS.map(({ days }) => days);
  * All periods end on `endDate`. Each period has its own charts.
  *
  * @param endDate Last day of every period in `YYYY-MM-DD`.
- * @param tracked A file whose number of lines every period also has. It is optional.
+ * @param tracked A file to show alone. It is optional. When it is set,
+ * every period has the number of lines of the file and no other charts.
  */
 export function buildPeriods(
   changes: readonly FileChange[],
   endDate: string,
   tracked?: TrackedFile,
 ): Period[] {
-  return PERIODS.map(({ days, label }) => ({
-    label,
-    sections: buildSections(changes, endDate, days),
-    ...(tracked && {
-      tracked: {
-        path: tracked.path,
-        days: buildFileLines(changes, tracked, endDate, days),
-      },
-    }),
-  }));
+  return PERIODS.map(({ days, label }) =>
+    tracked
+      ? {
+          label,
+          sections: [],
+          tracked: {
+            path: tracked.path,
+            days: buildFileLines(changes, tracked, endDate, days),
+          },
+        }
+      : { label, sections: buildSections(changes, endDate, days) },
+  );
 }

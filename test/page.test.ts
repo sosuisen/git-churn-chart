@@ -169,16 +169,16 @@ describe('renderPage', () => {
     expect(count(renderPage('my-repo', [empty], 0), /<svg /g)).toBe(1);
   });
 
-  // 行数を持つ期間は、いちばん下に、そのファイルの行数の線だけのグラフを描く。棒は描かない
-  test('draws a last chart with only the line of the lines of the tracked file', () => {
+  // 行数を持つ期間のページは、そのファイルの行数のグラフだけを描く。ほかのグラフと、棒の凡例は出さない
+  test('draws only the chart of the lines of the tracked file, without the other charts and the legend of bars', () => {
     const page = renderPage('my-repo', [withTracked], 0);
 
-    expect(count(page, /<svg /g)).toBe(2);
+    expect(count(page, /<svg /g)).toBe(1);
     expect(count(page, /class="line count"/g)).toBe(1);
-    expect(count(page, /class="bar /g)).toBe(0);
-    expect(page.indexOf('<h2>docs/plans.md の行数</h2>')).toBeGreaterThan(
-      page.indexOf('<h2>コード本体</h2>'),
-    );
+    expect(page).toContain('<h1>my-repo の docs/plans.md の行数</h1>');
+    expect(page).toContain('2026-11-16 〜 2026-11-18（3日間）');
+    expect(page).not.toContain('<h2>コード本体</h2>');
+    expect(page).not.toContain('class="legend"');
   });
 
   // 行数のグラフは、線の終点に最後の日の行数を表示し、表に日ごとの行数を並べる
@@ -192,7 +192,9 @@ describe('renderPage', () => {
 
   // 行数を持たない期間は、行数のグラフを描かない
   test('draws no chart of lines when the period has no tracked file', () => {
-    expect(renderPage('my-repo', [week], 0)).not.toContain('の行数</h2>');
+    expect(renderPage('my-repo', [week], 0)).not.toContain(
+      'class="line count"',
+    );
   });
 
   // 期間ごとのボタンを、渡した順に並べる
