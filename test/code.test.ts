@@ -63,6 +63,14 @@ describe('languageOf', () => {
     expect(languageOf('test/fixtures/app.min.js')).toBeUndefined();
   });
 
+  // protoというディレクトリの中のファイルは、コードではない。Protocol Buffersから生成したコードのためである
+  test('names no language for a file in a directory named proto', () => {
+    expect(languageOf('proto/src/journal.rs')).toBeUndefined();
+    expect(languageOf('app/src/proto/Journal.swift')).toBeUndefined();
+    expect(languageOf('app/src/proto/tests/journal_test.rs')).toBeUndefined();
+    expect(languageOf('app/src/protocol/journal.rs')).toBe('Rust');
+  });
+
   // コードでないファイルに、言語はない
   test('names no language for a file that is not code', () => {
     expect(languageOf('README.md')).toBeUndefined();
