@@ -105,4 +105,18 @@ describe('renderLanguagesSvg', () => {
       );
     expect(Math.min(...gaps)).toBeGreaterThanOrEqual(160);
   });
+
+  // 名前は、グラフの上下の端からはみ出さない
+  test('keeps the names between the top and the bottom of the plot', () => {
+    const svg = renderLanguagesSvg([
+      language('Rust', 0, 1000),
+      language('Swift', 1, 0),
+      language('Kotlin', 2, 0),
+      language('Java', 6, 0),
+    ]);
+
+    const [top = 0, bottom = 0] = lineEnds(svg);
+    const heights = labels(svg).map(label => label.y);
+    expect(heights).toEqual([top, bottom - 32, bottom - 16, bottom]);
+  });
 });
