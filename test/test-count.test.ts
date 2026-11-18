@@ -162,4 +162,16 @@ describe('countTests', () => {
     expect(countTests(change('Makefile', lines)).added).toBe(0);
     expect(countTests(change('src/lib.rs', lines)).added).toBe(1);
   });
+
+  // コードと数えない場所のファイルは、拡張子が合っていても数えない
+  test('does not count a file in a place that does not count as code', () => {
+    const lines = ["test('reads a line', () => {});"];
+
+    expect(countTests(change('test/parser.test.ts', lines)).added).toBe(0);
+    expect(countTests(change('src/vendor/parser.test.ts', lines)).added).toBe(
+      0,
+    );
+    expect(countTests(change('src/parser.test.min.js', lines)).added).toBe(0);
+    expect(countTests(change('src/parser.test.ts', lines)).added).toBe(1);
+  });
 });
