@@ -19,7 +19,7 @@
 | `main.ts`             | エントリーポイント。引数を読み、下の関数を順に呼ぶ                                             | `main`                                                       |
 | `git.ts`              | `git log`を実行する                                                                            | `readPatchLog`                                               |
 | `patch-log.ts`        | `git log -p`の出力を、ファイルごとの変更行にする                                               | `parsePatchLog`                                              |
-| `code.ts`             | 拡張子で、コードかどうかと、その言語を判定する                                                 | `isCode`、`languageOf`、`LANGUAGES`                          |
+| `code.ts`             | 拡張子とパスで、コードかどうかと、その言語を判定する                                           | `isCode`、`languageOf`、`LANGUAGES`                          |
 | `test-path.ts`        | パスで、テストかどうかを判定する                                                               | `isTestPath`                                                 |
 | `rust-test-module.ts` | Rustの1つの変更箇所を、本体の行とテストの行に分ける                                            | `splitRustHunk`                                              |
 | `category.ts`         | 1つのファイルの変更行を、コード本体・テスト・その他に分ける                                    | `countByCategory`                                            |
@@ -56,7 +56,11 @@ main → page → chart-svg → scale, format
 
 `countByCategory`が、次の順で決める。
 
-1. 拡張子が`CODE_EXTENSIONS`にないファイルは、「その他」である。
+1. コードでないファイルは、「その他」である。`isCode`が決める。次のどれかに当たるファイルは、コードではない。
+   - 拡張子が`CODE_EXTENSIONS`にない。
+   - 名前が`.min.js`で終わる。
+   - `vendor`という名前のディレクトリの中にある。
+   - `src`という名前のディレクトリの中にない。ただし、`.swift`と`.cs`は、どこにあってもコードである。
 2. パスがテストを表すファイルは、全体が「テスト」である。テスト用のディレクトリの中にあるか、ファイル名がテストを表す語で始まるか終わる。
 3. Rustのファイルは、変更箇所ごとに行単位で分ける。`#[cfg(test)]`の付いた定義（ふつうは`mod tests { ... }`）の中の行が「テスト」である。
 4. 残りは「コード本体」である。

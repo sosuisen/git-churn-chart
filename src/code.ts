@@ -19,8 +19,8 @@ const LANGUAGE_EXTENSIONS = [
     extensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'],
   },
   { name: 'Java', extensions: ['java'] },
-  // `.h` can also be C or Objective-C. It counts as C++ because the list has no C.
-  { name: 'C++', extensions: ['cpp', 'cc', 'cxx', 'hpp', 'hh', 'hxx', 'h'] },
+  // Headers are left out on purpose. `.h` can also be C or Objective-C.
+  { name: 'C++', extensions: ['cpp'] },
 ] as const;
 
 /** Names of the languages that count as code, in a fixed order. */
@@ -33,6 +33,13 @@ export const CODE_EXTENSIONS: readonly string[] = LANGUAGE_EXTENSIONS.flatMap(
   ({ extensions }) => extensions,
 );
 
+/**
+ * Extensions of the files that count as code in any directory.
+ * The files of the other extensions count only in a directory named `src`.
+ * Projects of Xcode and Visual Studio often have no `src` directory.
+ */
+const ANYWHERE_EXTENSIONS: ReadonlySet<string> = new Set(['swift', 'cs']);
+
 const LANGUAGE_BY_EXTENSION = new Map<string, string>(
   LANGUAGE_EXTENSIONS.flatMap(({ name, extensions }) =>
     extensions.map(extension => [extension, name]),
@@ -40,21 +47,29 @@ const LANGUAGE_BY_EXTENSION = new Map<string, string>(
 );
 
 /**
- * Names the language of a file. Only the extension decides it.
+ * Names the language of a file. The extension decides the language.
+ * The place and the name of the file decide if it counts as code at all.
  *
  * @param path File path with `/` between the names.
  * @returns A name in `LANGUAGES`, or `undefined` when the file is not code.
  */
 export function languageOf(path: string): string | undefined {
-  const file = path.split('/').pop() ?? '';
+  const directories = path.split('/');
+  const file = (directories.pop() ?? '').toLowerCase();
+  // A minified file is not written by a person. A vendor directory holds code from other projects.
+  if (file.endsWith('.min.js') || directories.includes('vendor')) {
+    return undefined;
+  }
   const dot = file.lastIndexOf('.');
-  return dot < 0
-    ? undefined
-    : LANGUAGE_BY_EXTENSION.get(file.slice(dot + 1).toLowerCase());
+  const extension = dot < 0 ? '' : file.slice(dot + 1);
+  if (!directories.includes('src') && !ANYWHERE_EXTENSIONS.has(extension)) {
+    return undefined;
+  }
+  return LANGUAGE_BY_EXTENSION.get(extension);
 }
 
 /**
- * Tells if a file is code. Only the extension decides it.
+ * Tells if a file is code. It is code when `languageOf` names its language.
  *
  * @param path File path with `/` between the names.
  */
