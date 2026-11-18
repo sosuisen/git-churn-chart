@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import type { ChartSection } from '../src/page.ts';
+import type { ChartSection } from '../src/view.ts';
 import type { FileChange } from '../src/patch-log.ts';
 import { buildSections } from '../src/sections.ts';
 

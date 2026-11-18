@@ -8,7 +8,7 @@
 
 コード本体、テストコード、テストの数のグラフの下には、言語別のグラフがある。言語ごとの純増の累計を、線で描く。
 
-期間は6つある。1週間（7日）、2週間（14日）、1か月（30日）、3か月（90日）、6か月（180日）、1年（365日）である。HTMLは6つの期間のグラフをすべて持ち、ページの上のボタンで表示を切り替える。
+期間は、今日までの1年（365日）の中で、ページの上で自由に選べる。開始日と終了日を入力するか、ボタン（1週間、2週間、1か月、3か月、6か月、1年）を押す。HTMLは、1年分の日ごとの数と、グラフを描くスクリプトを持つ。期間を変えると、ブラウザの中でグラフを描き直す。
 
 ## モジュール
 
@@ -27,31 +27,43 @@
 | `test-count.ts`       | 1つのファイルの変更行から、増えたテストと減ったテストを数える                                  | `countTests`                                                 |
 | `file-lines.ts`       | 1つのファイルの、日ごとの行数を出す。テキストの行数を数える                                    | `buildFileLines`、`countLines`                               |
 | `sections.ts`         | 4つのグラフのデータと見出しを作る                                                              | `buildSections`                                              |
-| `periods.ts`          | 期間ごとに、4つのグラフのデータを作る                                                          | `buildPeriods`、`PERIOD_DAYS`                                |
+| `page-data.ts`        | 1年分の、グラフごとの日ごとの数を作る                                                          | `buildPageData`、`PAGE_DAYS`                                 |
 | `scale.ts`            | 軸の目盛りを決める                                                                             | `niceTicks`                                                  |
 | `format.ts`           | 数と日付を文字列にする。HTMLをエスケープする                                                   | `formatSigned`、`formatTick`、`escapeHtml`                   |
 | `chart-svg.ts`        | 3種類のグラフをSVGで描く。棒と線のグラフ、言語別の線のグラフ、ファイルの行数の線のグラフである | `renderChartSvg`、`renderLanguagesSvg`、`renderFileLinesSvg` |
-| `page.ts`             | SVG・凡例・表・ツールチップをまとめて、HTMLにする                                              | `renderPage`                                                 |
+| `view.ts`             | ページのデータから1つの期間を切り出し、そのグラフ・凡例・表をHTMLにする                        | `buildView`、`renderView`、`indexOfDate`、`tabsOf`           |
+| `page.ts`             | 期間とタブの操作、最初の期間のグラフ、データ、スクリプトをまとめて、HTMLにする                 | `renderPage`                                                 |
+| `client.ts`           | ブラウザの中で、期間とタブの操作を受けて、グラフを描き直す                                     | `startPage`                                                  |
+| `tooltip.ts`          | ブラウザの中で、グラフのツールチップを出す                                                     | `attachTooltips`                                             |
+| `client-script.ts`    | ブラウザで動くモジュールを、1つのスクリプトにつなぐ                                            | `readClientScript`                                           |
 
 依存の向きは、次のとおりである。
 
 ```
 main → git → patch-log
 main → patch-log
-main → periods → sections → category → code, test-path, rust-test-module
-                                       code → test-path
-                 sections → test-count
-                 sections → daily-stats
-                 sections → code, page（型だけ）, chart-svg（型だけ）
-       periods → page（型だけ）
-       periods → file-lines → daily-stats
+main → page-data → sections → category → code, test-path, rust-test-module
+                                         code → test-path
+                   sections → test-count
+                   sections → daily-stats
+                   sections → code, view（型だけ）, chart-svg（型だけ）
+       page-data → view（型だけ）
+       page-data → file-lines → daily-stats
 main → file-lines
-main → page → chart-svg → scale, format
-              page, chart-svg → file-lines（型だけ）
-              page → format
+main → client-script
+main → page → view → chart-svg → scale, format
+                     view, chart-svg → daily-stats, file-lines（型だけ）
+                     view → format
+       page → format
+client → view, tooltip
 ```
 
-- 外部に触るのは、`git.ts`、`browser.ts`、`main.ts`だけである。ほかは、ファイルもGitも触らない計算である。
+- 外部に触るのは、`git.ts`、`browser.ts`、`client-script.ts`、`main.ts`だけである。ほかは、ファイルもGitも触らない計算である。
+- ブラウザの中でも動くモジュールは、`format.ts`、`scale.ts`、`chart-svg.ts`、`view.ts`、`tooltip.ts`、`client.ts`である。
+  - これらは、Node.jsのAPIを使わない。importするのは、この中のモジュールと、型だけである。
+  - `readClientScript`が、これらから型・import・`export`を取り除き、1つのスクリプトにつなぐ。だから、トップレベルの名前は、6つのモジュールで重ならないようにする。
+  - 型は、Node.jsの`stripTypeScriptTypes`で取り除く。ビルドの手順を増やさないためである。
+  - `tooltip.ts`と`client.ts`は、ブラウザの中だけで動く。`client.ts`は、DOMの代用でテストする。`tooltip.ts`は、ブラウザのレイアウトが要るので、テストしない。
 
 ## コード本体とテストの分け方
 
@@ -84,14 +96,15 @@ Rustの行単位の切り分けは、ファイル全体を読まない。変更�
 
 ## 主な処理の流れ
 
-1. `main`が引数を読み、今日の日付と、最初に出す期間を決める。開始日は、最も長い期間（365日）の最初の日である。
+1. `main`が引数を読み、今日の日付と、最初に出す期間の日数を決める。開始日は、1年（365日）の最初の日である。
 2. `readPatchLog`が、開始日以降のログを、差分つきで読む。
 3. `parsePatchLog`が、ログをファイルごとの変更行にする。
-4. `buildPeriods`が、期間ごとに`buildSections`を呼ぶ。`--track`が付いていれば、`buildSections`の代わりに`buildFileLines`を呼ぶ。このとき、5のデータは作らない。`buildFileLines`は、今の行数から日ごとの変更をさかのぼり、そのファイルの日ごとの行数を出す。今の行数は、`main`が`readHeadFile`と`countLines`で数える。
+4. `buildPageData`が、1年分の`buildSections`を呼び、グラフごとの日ごとの追加と削除にする。`--track`が付いていれば、`buildSections`の代わりに`buildFileLines`を呼ぶ。このとき、5のデータは作らない。`buildFileLines`は、今の行数から日ごとの変更をさかのぼり、そのファイルの日ごとの行数を出す。今の行数は、`main`が`readHeadFile`と`countLines`で数える。
 5. `buildSections`が、ファイルごとに`countByCategory`で行を分け、`countTests`でテストの宣言を数えて、4つのグラフのデータを作る。コード本体、テストコード、テストの数には、`languageOf`で分けた言語ごとのデータも付ける。言語の色は、`LANGUAGES`の中の位置で決まる。その中で`buildDailyStats`が、日ごとに合計し、変更のない日を0で埋め、累計を計算する。
-6. `renderPage`が、期間ごとのボタンと表示をHTMLにする。その上に、タブごとのボタンを置く。1つの表示には、4つのセクションが入る。最初のタブのセクションのほかは、`hidden`で隠す。セクションごとに`renderChartSvg`がグラフを描く。言語ごとの行数を持つセクションでは、その下に`renderLanguagesSvg`が言語別のグラフを描く。線の右端には、言語の名前を線と同じ色で、期間全体の純増を文字の色で書く。名前が重なるときは、線の右端の順番を保ったまま、上下に離す。ファイルの行数を持つ期間では、セクションの代わりに、`renderFileLinesSvg`が行数のグラフだけを描く。このページには、棒の凡例を出さない。最初に出す期間のほかは、`hidden`で隠す。
-7. ブラウザでボタンを押すと、HTMLの中のスクリプトが、表示する期間を入れ替える。タブを押すと、すべての期間で、そのタブのセクションだけを出す。だから、期間を変えても、選んだタブはそのままである。
-8. `main`がHTMLを書き出し、そのパスを表示する。`--open`が付いていれば、`openInBrowser`がHTMLを既定のブラウザで開く。
+6. `renderPage`が、タブのボタン、期間のボタン、開始日と終了日の入力をHTMLにする。1年分のデータをJSONで、`readClientScript`のスクリプトをそのまま、ページに入れる。最初の期間のグラフは、`buildView`と`renderView`で描いて、ページに入れておく。だから、スクリプトが動かなくても、最初の期間は読める。
+7. `buildView`が、データから期間の日だけを切り出し、累計を期間の最初の日から計算する。期間の中に変更のない言語は外す。`renderView`が、4つのセクションをHTMLにする。選んだタブのセクションのほかは、`hidden`で隠す。セクションごとに`renderChartSvg`がグラフを描く。言語ごとの行数を持つセクションでは、その下に`renderLanguagesSvg`が言語別のグラフを描く。線の右端には、言語の名前を線と同じ色で、期間全体の純増を文字の色で書く。名前が重なるときは、線の右端の順番を保ったまま、上下に離す。ファイルの行数を持つ期間では、セクションの代わりに、`renderFileLinesSvg`が行数のグラフだけを描く。このページには、棒の凡例を出さない。
+8. ブラウザでは、`startPage`が操作を受ける。期間のボタンを押すか、開始日か終了日を変えると、7と同じ`buildView`と`renderView`で、グラフを描き直す。タブを押したときも描き直す。選んだタブは覚えているので、期間を変えてもタブはそのままである。
+9. `main`がHTMLを書き出し、そのパスを表示する。`--open`が付いていれば、`openInBrowser`がHTMLを既定のブラウザで開く。
 
 ## 関連する文書
 

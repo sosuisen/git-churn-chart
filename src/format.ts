@@ -1,4 +1,4 @@
-const MINUS = '−';
+export const MINUS = '−';
 const COMPACT_FROM = 10_000;
 
 /** Formats a count with thousands separators: `1,234`. */

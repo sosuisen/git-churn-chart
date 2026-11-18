@@ -2,7 +2,7 @@ import { countByCategory } from './category.ts';
 import type { LanguageLine } from './chart-svg.ts';
 import { CODE_EXTENSIONS, LANGUAGES, languageOf } from './code.ts';
 import { buildDailyStats, type DatedChange } from './daily-stats.ts';
-import type { ChartSection } from './page.ts';
+import type { ChartSection } from './view.ts';
 import type { FileChange } from './patch-log.ts';
 import { countTests } from './test-count.ts';
 
