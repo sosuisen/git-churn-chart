@@ -47,7 +47,8 @@ const LANGUAGE_BY_EXTENSION = new Map<string, string>(
 );
 
 /**
- * Names the language of a file. Only the extension decides it.
+ * Names the language of a file. The extension decides the language.
+ * The place and the name of the file decide if it counts as code at all.
  *
  * @param path File path with `/` between the names.
  * @returns A name in `LANGUAGES`, or `undefined` when the file is not code.
@@ -68,7 +69,7 @@ export function languageOf(path: string): string | undefined {
 }
 
 /**
- * Tells if a file is code. Only the extension decides it.
+ * Tells if a file is code. It is code when `languageOf` names its language.
  *
  * @param path File path with `/` between the names.
  */

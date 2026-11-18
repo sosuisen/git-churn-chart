@@ -28,18 +28,27 @@
 
 「コード本体」と「テストコード」は、次の拡張子のファイルだけを数える。対象の拡張子は、グラフの見出しにも出る。
 
-| 言語                   | 拡張子                                       |
-| ---------------------- | -------------------------------------------- |
-| Rust                   | `.rs`                                        |
-| Swift                  | `.swift`                                     |
-| Kotlin                 | `.kt`                                        |
-| C#・XAML               | `.cs` `.xaml`                                |
-| Emacs Lisp             | `.el`                                        |
-| TypeScript・JavaScript | `.ts` `.tsx` `.js` `.jsx` `.mjs` `.cjs`      |
-| Java                   | `.java`                                      |
-| C++                    | `.cpp` `.cc` `.cxx` `.hpp` `.hh` `.hxx` `.h` |
+| 言語                   | 拡張子                                  |
+| ---------------------- | --------------------------------------- |
+| Rust                   | `.rs`                                   |
+| Swift                  | `.swift`                                |
+| Kotlin                 | `.kt`                                   |
+| C#・XAML               | `.cs` `.xaml`                           |
+| Emacs Lisp             | `.el`                                   |
+| TypeScript・JavaScript | `.ts` `.tsx` `.js` `.jsx` `.mjs` `.cjs` |
+| Java                   | `.java`                                 |
+| C++                    | `.cpp`                                  |
 
-`.h`は、CやObjective-Cのヘッダーでも、C++として数える。
+C++は、`.cpp`だけを数える。ヘッダー（`.h`、`.hpp`など）は数えない。
+
+拡張子が合っていても、次のファイルはコードと数えない。「すべてのファイル」のグラフには入る。
+
+- `src`という名前のディレクトリの中にないファイル。たとえば`app/src/main.rs`は数え、`app/tools/build.mjs`や`tests/sync.rs`は数えない。
+  - `.swift`と`.cs`だけは、どこにあっても数える。`.xaml`は、`src`の中だけを数える。
+- `vendor`という名前のディレクトリの中のファイル。
+- 名前が`.min.js`で終わるファイル。
+
+「テストの数」も、コードと数えるファイルだけを見る。
 
 - ドキュメント、設定（JSON、TOML、YAMLなど）、ロックファイル、画像は数えない。
 - HTML・CSSも数えない。
