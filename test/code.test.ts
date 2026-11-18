@@ -54,6 +54,15 @@ describe('languageOf', () => {
     expect(languageOf('vendor/Lib/Thing.swift')).toBeUndefined();
   });
 
+  // テストのパスにあるファイルは、srcの中になくてもコードである
+  test('names the language of a file in a test path outside src', () => {
+    expect(languageOf('app/tests/sync.rs')).toBe('Rust');
+    expect(languageOf('test/parser.test.ts')).toBe('TypeScript・JavaScript');
+    expect(languageOf('tools/parser_test.cpp')).toBe('C++');
+    expect(languageOf('vendor/lib/test/parser.test.ts')).toBeUndefined();
+    expect(languageOf('test/fixtures/app.min.js')).toBeUndefined();
+  });
+
   // コードでないファイルに、言語はない
   test('names no language for a file that is not code', () => {
     expect(languageOf('README.md')).toBeUndefined();
