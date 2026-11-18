@@ -12,8 +12,9 @@ import { niceTicks } from './scale.ts';
 const WIDTH = 960;
 const HEIGHT = 420;
 // The right margin holds the labels at the ends of the lines.
-// The longest label is the name of a language, "TypeScript・JavaScript".
-const MARGIN = { top: 24, right: 176, bottom: 40, left: 64 };
+// The longest label is the name of a language with its net change,
+// such as "TypeScript・JavaScript +123,456".
+const MARGIN = { top: 24, right: 236, bottom: 40, left: 64 };
 // Space between the end of a line and its label.
 const END_LABEL_GAP = 12;
 // Labels of languages that are closer than this overlap.
@@ -103,7 +104,7 @@ export function renderLanguagesSvg(lines: readonly LanguageLine[]): string {
         const line = lines[index];
         return line === undefined
           ? ''
-          : `<text class="series-label series-${line.colorIndex + 1}" x="${labelX}" y="${round(y)}" dy="0.32em">${escapeHtml(line.name)}</text>`;
+          : `<text class="series-label series-${line.colorIndex + 1}" x="${labelX}" y="${round(y)}" dy="0.32em">${escapeHtml(line.name)}<tspan class="series-total" dx="6">${formatSigned(line.stats.at(-1)?.cumulative ?? 0)}</tspan></text>`;
       }),
     ];
   });
