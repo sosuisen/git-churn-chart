@@ -8,8 +8,8 @@ describe('languageOf', () => {
     expect(languageOf('app/src/main.rs')).toBe('Rust');
     expect(languageOf('server/src/main/java/App.java')).toBe('Java');
     expect(languageOf('app/src/App.tsx')).toBe('TypeScript・JavaScript');
-    expect(languageOf('app/tools/build.MJS')).toBe('TypeScript・JavaScript');
-    expect(languageOf('app/MainWindow.xaml')).toBe('C#・XAML');
+    expect(languageOf('app/src/build.MJS')).toBe('TypeScript・JavaScript');
+    expect(languageOf('app/src/MainWindow.xaml')).toBe('C#・XAML');
     expect(languageOf('engine/src/parser.cpp')).toBe('C++');
   });
 
@@ -35,6 +35,23 @@ describe('languageOf', () => {
     expect(languageOf('app/src/vendors/tweedle.js')).toBe(
       'TypeScript・JavaScript',
     );
+  });
+
+  // srcというディレクトリの中にないファイルは、コードではない
+  test('names no language for a file that is not in a directory named src', () => {
+    expect(languageOf('app/tools/build.mjs')).toBeUndefined();
+    expect(languageOf('main.rs')).toBeUndefined();
+    expect(languageOf('src.rs')).toBeUndefined();
+    expect(languageOf('app/tests/sync.rs')).toBeUndefined();
+    expect(languageOf('app/MainWindow.xaml')).toBeUndefined();
+    expect(languageOf('app/src/main/kotlin/App.kt')).toBe('Kotlin');
+  });
+
+  // .swiftと.csのファイルは、srcの中になくてもコードである
+  test('names the language of .swift and .cs files outside src', () => {
+    expect(languageOf('App/AppDelegate.swift')).toBe('Swift');
+    expect(languageOf('App/MainWindow.xaml.cs')).toBe('C#・XAML');
+    expect(languageOf('vendor/Lib/Thing.swift')).toBeUndefined();
   });
 
   // コードでないファイルに、言語はない
