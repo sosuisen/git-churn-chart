@@ -46,11 +46,13 @@ const LANGUAGE_BY_EXTENSION = new Map<string, string>(
  * @returns A name in `LANGUAGES`, or `undefined` when the file is not code.
  */
 export function languageOf(path: string): string | undefined {
-  const file = path.split('/').pop() ?? '';
+  const file = (path.split('/').pop() ?? '').toLowerCase();
+  // A minified file is not written by a person.
+  if (file.endsWith('.min.js')) {
+    return undefined;
+  }
   const dot = file.lastIndexOf('.');
-  return dot < 0
-    ? undefined
-    : LANGUAGE_BY_EXTENSION.get(file.slice(dot + 1).toLowerCase());
+  return dot < 0 ? undefined : LANGUAGE_BY_EXTENSION.get(file.slice(dot + 1));
 }
 
 /**
