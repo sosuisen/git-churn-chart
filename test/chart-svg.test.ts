@@ -80,4 +80,24 @@ describe('renderLanguagesSvg', () => {
       { name: 'Java', series: 'series-7', y: javaEnd },
     ]);
   });
+
+  // 右端が近い言語の名前は、重ならないように上下に離す。上下の順番は、線の右端の順番と同じである
+  test('moves the names of lines with close ends apart, in the same order from top to bottom as the ends', () => {
+    const svg = renderLanguagesSvg([
+      language('Rust', 0, 1000),
+      language('Swift', 1, 998),
+      language('Kotlin', 2, 999),
+      language('Java', 6, 0),
+    ]);
+
+    const byHeight = labels(svg).toSorted((a, b) => a.y - b.y);
+    expect(byHeight.map(label => label.name)).toEqual([
+      'Rust',
+      'Kotlin',
+      'Swift',
+      'Java',
+    ]);
+    const gaps = byHeight.slice(1).map((label, i) => label.y - byHeight[i]!.y);
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(16);
+  });
 });

@@ -1,11 +1,21 @@
 import type { DailyStat } from './daily-stats.ts';
 import type { DailyLines } from './file-lines.ts';
-import { formatCount, formatDay, formatSigned, formatTick } from './format.ts';
+import {
+  escapeHtml,
+  formatCount,
+  formatDay,
+  formatSigned,
+  formatTick,
+} from './format.ts';
 import { niceTicks } from './scale.ts';
 
 const WIDTH = 960;
 const HEIGHT = 420;
-const MARGIN = { top: 24, right: 104, bottom: 40, left: 64 };
+// The right margin holds the labels at the ends of the lines.
+// The longest label is the name of a language, "TypeScript・JavaScript".
+const MARGIN = { top: 24, right: 176, bottom: 40, left: 64 };
+// Space between the end of a line and its label.
+const END_LABEL_GAP = 12;
 const PLOT_WIDTH = WIDTH - MARGIN.left - MARGIN.right;
 const PLOT_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
 const PLOT_BOTTOM = MARGIN.top + PLOT_HEIGHT;
@@ -74,15 +84,23 @@ export function renderLanguagesSvg(lines: readonly LanguageLine[]): string {
     throw new RangeError('lines must have at least one language with days');
   }
   const totals = lines.flatMap(line => line.stats.map(s => s.cumulative));
-  return frame('言語ごとの、純増の累計', days, totals, ({ toX, toY }) => [
-    baseline(toY),
-    ...lines.map(line => {
-      const points = line.stats.map(
-        (stat, index) => `${round(toX(index))},${round(toY(stat.cumulative))}`,
-      );
-      return `<polyline class="line series-${line.colorIndex + 1}" points="${points.join(' ')}"/>`;
-    }),
-  ]);
+  return frame('言語ごとの、純増の累計', days, totals, ({ toX, toY }) => {
+    const labelX = round(toX(days.length - 1)) + END_LABEL_GAP;
+    return [
+      baseline(toY),
+      ...lines.map(line => {
+        const points = line.stats.map(
+          (stat, index) =>
+            `${round(toX(index))},${round(toY(stat.cumulative))}`,
+        );
+        return `<polyline class="line series-${line.colorIndex + 1}" points="${points.join(' ')}"/>`;
+      }),
+      ...lines.map(line => {
+        const y = round(toY(line.stats.at(-1)?.cumulative ?? 0));
+        return `<text class="series-label series-${line.colorIndex + 1}" x="${labelX}" y="${y}" dy="0.32em">${escapeHtml(line.name)}</text>`;
+      }),
+    ];
+  });
 }
 
 /**
@@ -105,7 +123,7 @@ export function renderFileLinesSvg(days: readonly DailyLines[]): string {
     return [
       baseline(toY),
       `<polyline class="line count" points="${points.map(p => `${p.x},${p.y}`).join(' ')}"/>`,
-      `<text class="end-label" x="${last.x + 12}" y="${last.y}" dy="0.32em">${formatCount(counts.at(-1) ?? 0)}行</text>`,
+      `<text class="end-label" x="${last.x + END_LABEL_GAP}" y="${last.y}" dy="0.32em">${formatCount(counts.at(-1) ?? 0)}行</text>`,
     ];
   });
 }
@@ -240,7 +258,7 @@ function cumulativeLine(
       p =>
         `<circle class="marker" cx="${p.x}" cy="${p.y}" r="${MARKER_RADIUS}"/>`,
     ),
-    `<text class="end-label" x="${last.x + 12}" y="${last.y}" dy="0.32em">累計 ${formatSigned(total)}</text>`,
+    `<text class="end-label" x="${last.x + END_LABEL_GAP}" y="${last.y}" dy="0.32em">累計 ${formatSigned(total)}</text>`,
   ].join('\n');
 }
 
