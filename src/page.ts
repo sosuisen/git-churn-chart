@@ -108,6 +108,7 @@ svg { display: block; width: 100%; height: auto; }
 .marker { fill: var(--cumulative); stroke: var(--surface); stroke-width: 2; }
 .end-label { fill: var(--text-primary); font-size: 13px; font-weight: 600; }
 .series-label { font-size: 12px; font-weight: 600; }
+.series-total { font-variant-numeric: tabular-nums; }
 .series-label.series-1 { fill: var(--series-1); }
 .series-label.series-2 { fill: var(--series-2); }
 .series-label.series-3 { fill: var(--series-3); }

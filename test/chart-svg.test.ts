@@ -36,7 +36,7 @@ interface Label {
 /** The names at the right end of the lines, in the order of the SVG. */
 function labels(svg: string): Label[] {
   const pattern =
-    /<text class="series-label (series-\d+)" x="[\d.]+" y="([\d.]+)"[^>]*>([^<]*)<\/text>/g;
+    /<text class="series-label (series-\d+)" x="[\d.]+" y="([\d.]+)"[^>]*>([^<]*)</g;
   return [...svg.matchAll(pattern)].map(match => ({
     series: match[1] ?? '',
     y: Number(match[2]),
@@ -78,6 +78,26 @@ describe('renderLanguagesSvg', () => {
     expect(labels(svg)).toEqual([
       { name: 'Rust', series: 'series-1', y: rustEnd },
       { name: 'Java', series: 'series-7', y: javaEnd },
+    ]);
+  });
+
+  // 名前の右に、その言語の期間全体の純増を書く
+  test('writes the net change of the period on the right of the name of each language', () => {
+    const svg = renderLanguagesSvg([
+      language('Rust', 0, 12345),
+      language('Java', 6, -100),
+      language('Kotlin', 2, 0),
+    ]);
+
+    const texts = [
+      ...svg.matchAll(
+        /<text class="series-label[^>]*>([^<]*)<tspan class="series-total"[^>]*>([^<]*)<\/tspan><\/text>/g,
+      ),
+    ].map(match => match.slice(1));
+    expect(texts).toEqual([
+      ['Rust', '+12,345'],
+      ['Java', '−100'],
+      ['Kotlin', '0'],
     ]);
   });
 
